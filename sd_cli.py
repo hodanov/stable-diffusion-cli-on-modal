@@ -101,8 +101,6 @@ class StableDiffusion:
             low_cpu_mem_usage=True,
             device_map="auto",
         ).to("cuda")
-        if self.pipe.safety_checker is not None:
-            self.pipe.safety_checker = lambda images, **kwargs: (images, False)
         self.pipe.enable_xformers_memory_efficient_attention()
 
     @method()
