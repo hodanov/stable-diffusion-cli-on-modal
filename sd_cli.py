@@ -62,7 +62,6 @@ stub_image = (
 stub.image = stub_image
 
 
-# @stub.cls(gpu="A10G", secrets=[Secret.from_name("my-huggingface-secret")])
 @stub.cls(gpu="A10G", secrets=[Secret.from_dotenv(__file__)])
 class StableDiffusion:
     """
