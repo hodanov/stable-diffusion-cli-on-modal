@@ -8,11 +8,7 @@ from modal import Image, Secret, Stub, method
 
 stub = Stub("stable-diffusion-cli")
 
-MODEL = {
-    "repo_id": "runwayml/stable-diffusion-v1-5",
-    "name": "stable-diffusion-v1-5",
-}
-CACHE_PATH = os.path.join("/vol/cache", MODEL["name"])
+BASE_CACHE_PATH = "/vol/cache"
 
 
 def download_models():
@@ -24,22 +20,24 @@ def download_models():
     import torch
 
     hugging_face_token = os.environ["HUGGINGFACE_TOKEN"]
+    model_repo_id = os.environ["MODEL_REPO_ID"]
+    cache_path = os.path.join(BASE_CACHE_PATH, os.environ["MODEL_NAME"])
 
     scheduler = diffusers.EulerAncestralDiscreteScheduler.from_pretrained(
-        MODEL["repo_id"],
+        model_repo_id,
         subfolder="scheduler",
         use_auth_token=hugging_face_token,
-        cache_dir=CACHE_PATH,
+        cache_dir=cache_path,
     )
-    scheduler.save_pretrained(CACHE_PATH, safe_serialization=True)
+    scheduler.save_pretrained(cache_path, safe_serialization=True)
 
     pipe = diffusers.StableDiffusionPipeline.from_pretrained(
-        MODEL["repo_id"],
+        model_repo_id,
         use_auth_token=hugging_face_token,
         torch_dtype=torch.float16,
-        cache_dir=CACHE_PATH,
+        cache_dir=cache_path,
     )
-    pipe.save_pretrained(CACHE_PATH, safe_serialization=True)
+    pipe.save_pretrained(cache_path, safe_serialization=True)
 
 
 stub_image = (
@@ -58,13 +56,14 @@ stub_image = (
     .pip_install("xformers", pre=True)
     .run_function(
         download_models,
-        secrets=[Secret.from_name("my-huggingface-secret")],
+        secrets=[Secret.from_dotenv(__file__)],
     )
 )
 stub.image = stub_image
 
 
-@stub.cls(gpu="A10G", secrets=[Secret.from_name("my-huggingface-secret")])
+# @stub.cls(gpu="A10G", secrets=[Secret.from_name("my-huggingface-secret")])
+@stub.cls(gpu="A10G", secrets=[Secret.from_dotenv(__file__)])
 class StableDiffusion:
     """
     A class that wraps the Stable Diffusion pipeline and scheduler.
@@ -74,16 +73,17 @@ class StableDiffusion:
         import diffusers
         import torch
 
-        if os.path.exists(CACHE_PATH):
-            print(f"The directory '{CACHE_PATH}' exists.")
+        cache_path = os.path.join(BASE_CACHE_PATH, os.environ["MODEL_NAME"])
+        if os.path.exists(cache_path):
+            print(f"The directory '{cache_path}' exists.")
         else:
-            print(f"The directory '{CACHE_PATH}' does not exist. Download models...")
+            print(f"The directory '{cache_path}' does not exist. Download models...")
             download_models()
 
         torch.backends.cuda.matmul.allow_tf32 = True
 
         scheduler = diffusers.EulerAncestralDiscreteScheduler.from_pretrained(
-            CACHE_PATH,
+            cache_path,
             subfolder="scheduler",
             solver_order=2,
             prediction_type="epsilon",
@@ -96,7 +96,7 @@ class StableDiffusion:
         )
 
         self.pipe = diffusers.StableDiffusionPipeline.from_pretrained(
-            CACHE_PATH,
+            cache_path,
             scheduler=scheduler,
             low_cpu_mem_usage=True,
             device_map="auto",
