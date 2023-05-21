@@ -1,0 +1,5 @@
+modal-client
+# The below packages are not necessary because them are installed into the image on Modal.
+# However, you prevent some lint errors when you edit the code by the editor like VSCode or Vim.
+diffusers
+torch
