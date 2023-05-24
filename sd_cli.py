@@ -76,7 +76,6 @@ class StableDiffusion:
             cache_path,
             scheduler=scheduler,
             custom_pipeline="lpw_stable_diffusion",
-            max_embeddings_multiples=2,
             safety_checker=None,
         ).to("cuda")
         self.pipe.enable_xformers_memory_efficient_attention()
@@ -90,6 +89,7 @@ class StableDiffusion:
         batch_size: int = 1,
         height: int = 512,
         width: int = 512,
+        max_embeddings_multiples: int = 1,
     ) -> list[bytes]:
         """
         Runs the Stable Diffusion pipeline on the given prompt and outputs images.
@@ -105,6 +105,7 @@ class StableDiffusion:
                     width=width,
                     num_inference_steps=steps,
                     guidance_scale=7.5,
+                    max_embeddings_multiples=max_embeddings_multiples,
                 ).images
 
         # Convert to PNG bytes
@@ -142,6 +143,15 @@ def entrypoint(
     """
     print(f"steps => {steps}, sapmles => {samples}, batch_size => {batch_size}")
 
+    max_embeddings_multiples = 1
+    token_count = len(prompt.split())
+    if token_count > 77:
+        max_embeddings_multiples = token_count // 77 + 1
+
+    print(
+        f"token_count => {token_count}, max_embeddings_multiples => {max_embeddings_multiples}"
+    )
+
     directory = Path(f"./outputs/{date.today().strftime('%Y-%m-%d')}")
     if not directory.exists():
         directory.mkdir(exist_ok=True, parents=True)
@@ -156,13 +166,15 @@ def entrypoint(
             batch_size,
             height,
             width,
+            max_embeddings_multiples,
         )
         total_time = time.time() - start_time
         print(
             f"Sample {i} took {total_time:.3f}s ({(total_time)/len(images):.3f}s / image)."
         )
         for j, image_bytes in enumerate(images):
-            output_path = directory / f"output_{j}_{i}.png"
+            formatted_time = time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
+            output_path = directory / f"{formatted_time}_{i}_{j}.png"
             print(f"Saving it to {output_path}")
             with open(output_path, "wb") as file:
                 file.write(image_bytes)
