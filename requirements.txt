@@ -1,5 +1,9 @@
-modal-client
-# The below packages are not necessary because them are installed into the image on Modal.
-# However, you prevent some lint errors when you edit the code by the editor like VSCode or Vim.
-diffusers
-torch
+accelerate
+scipy
+diffusers[torch]
+safetensors
+torch==2.0.1+cu117
+torchvision
+torchmetrics
+omegaconf
+transformers

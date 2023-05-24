@@ -4,7 +4,7 @@ import os
 import time
 from datetime import date
 from pathlib import Path
-from modal import Image, Secret, Stub, method
+from modal import Image, Secret, Stub, method, Mount
 
 stub = Stub("stable-diffusion-cli")
 
@@ -17,7 +17,6 @@ def download_models():
     diffusers.StableDiffusionPipeline.from_pretrained().
     """
     import diffusers
-    import torch
 
     hugging_face_token = os.environ["HUGGINGFACE_TOKEN"]
     model_repo_id = os.environ["MODEL_REPO_ID"]
@@ -34,30 +33,17 @@ def download_models():
     pipe = diffusers.StableDiffusionPipeline.from_pretrained(
         model_repo_id,
         use_auth_token=hugging_face_token,
-        torch_dtype=torch.float16,
         cache_dir=cache_path,
     )
     pipe.save_pretrained(cache_path, safe_serialization=True)
 
 
-stub_image = (
-    Image.debian_slim(python_version="3.10")
-    .pip_install(
-        "accelerate",
-        "diffusers[torch]>=0.15.1",
-        "ftfy",
-        "torch",
-        "torchvision",
-        "transformers~=4.25.1",
-        "triton",
-        "safetensors",
-        "torch>=2.0",
-    )
-    .pip_install("xformers", pre=True)
-    .run_function(
-        download_models,
-        secrets=[Secret.from_dotenv(__file__)],
-    )
+stub_image = Image.from_dockerfile(
+    path="./Dockerfile",
+    context_mount=Mount.from_local_file("./requirements.txt"),
+).run_function(
+    download_models,
+    secrets=[Secret.from_dotenv(__file__)],
 )
 stub.image = stub_image
 
@@ -84,21 +70,14 @@ class StableDiffusion:
         scheduler = diffusers.EulerAncestralDiscreteScheduler.from_pretrained(
             cache_path,
             subfolder="scheduler",
-            solver_order=2,
-            prediction_type="epsilon",
-            thresholding=False,
-            algorithm_type="dpmsolver++",
-            solver_type="midpoint",
-            denoise_final=True,  # important if steps are <= 10
-            low_cpu_mem_usage=True,
-            device_map="auto",
         )
 
         self.pipe = diffusers.StableDiffusionPipeline.from_pretrained(
             cache_path,
             scheduler=scheduler,
-            low_cpu_mem_usage=True,
-            device_map="auto",
+            custom_pipeline="lpw_stable_diffusion",
+            max_embeddings_multiples=2,
+            safety_checker=None,
         ).to("cuda")
         self.pipe.enable_xformers_memory_efficient_attention()
 
