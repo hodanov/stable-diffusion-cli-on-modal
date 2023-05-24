@@ -76,7 +76,6 @@ class StableDiffusion:
             cache_path,
             scheduler=scheduler,
             custom_pipeline="lpw_stable_diffusion",
-            safety_checker=None,
         ).to("cuda")
         self.pipe.enable_xformers_memory_efficient_attention()
 
@@ -108,7 +107,6 @@ class StableDiffusion:
                     max_embeddings_multiples=max_embeddings_multiples,
                 ).images
 
-        # Convert to PNG bytes
         image_output = []
         for image in images:
             with io.BytesIO() as buf:
