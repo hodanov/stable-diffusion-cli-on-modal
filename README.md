@@ -30,9 +30,9 @@ To use the script, execute the below.
 
 ```
 1. git clone the repository.
-1. Open the .env file and set a huggingface API token and a model.
-1. Open the Makefile and set prompts.
-1. Execute `make run` command.
+2. Open the .env file and set a huggingface API token and a model.
+3. Open the Makefile and set prompts.
+4. Execute `make run` command.
 ```
 
 Images are generated and output to the `outputs/` directory.
