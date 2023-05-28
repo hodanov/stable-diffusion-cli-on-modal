@@ -30,7 +30,7 @@ To use the script, execute the below.
 
 ```
 1. git clone the repository.
-2. Open the .env file and set a huggingface API token and a model.
+2. Create the `.env` file and set a huggingface API token and a model with reference to `.env.example`.
 3. Open the Makefile and set prompts.
 4. Execute `make run` command.
 ```
