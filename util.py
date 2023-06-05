@@ -52,3 +52,15 @@ def count_token(p: str, n: str) -> int:
     print(f"token_count: {token_count}, max_embeddings_multiples: {max_embeddings_multiples}")
 
     return max_embeddings_multiples
+
+
+def save_images(directory: Path, images: list[bytes], i: int):
+    """
+    Save images to a file.
+    """
+    for j, image_bytes in enumerate(images):
+        formatted_time = time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
+        output_path = directory / f"{formatted_time}_{i}_{j}.png"
+        print(f"Saving it to {output_path}")
+        with open(output_path, "wb") as file:
+            file.write(image_bytes)
