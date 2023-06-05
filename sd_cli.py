@@ -162,18 +162,13 @@ def entrypoint(
 
     inputs["max_embeddings_multiples"] = util.count_token(p=prompt, n=n_prompt)
     directory = util.make_directory()
-    util.save_prompts(inputs)
 
     sd = StableDiffusion()
     for i in range(samples):
         start_time = time.time()
         images = sd.run_inference.call(inputs)
-        for j, image_bytes in enumerate(images):
-            formatted_time = time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
-            output_path = directory / f"{formatted_time}_{i}_{j}.png"
-            print(f"Saving it to {output_path}")
-            with open(output_path, "wb") as file:
-                file.write(image_bytes)
-
+        util.save_images(directory, images, i)
         total_time = time.time() - start_time
         print(f"Sample {i} took {total_time:.3f}s ({(total_time)/len(images):.3f}s / image).")
+
+    util.save_prompts(inputs)
