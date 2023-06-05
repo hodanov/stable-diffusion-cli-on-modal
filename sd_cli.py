@@ -1,12 +1,12 @@
 from __future__ import annotations
+
 import io
 import os
 import time
-from datetime import date
-from pathlib import Path
-from modal import Image, Secret, Stub, method, Mount
 
-stub = Stub("stable-diffusion-cli")
+from modal import Image, Mount, Secret, Stub, method
+
+import util
 
 BASE_CACHE_PATH = "/vol/cache"
 
@@ -18,7 +18,7 @@ def download_models():
     """
     import diffusers
 
-    hugging_face_token = os.environ["HUGGINGFACE_TOKEN"]
+    hugging_face_token = os.environ["HUGGING_FACE_TOKEN"]
     model_repo_id = os.environ["MODEL_REPO_ID"]
     cache_path = os.path.join(BASE_CACHE_PATH, os.environ["MODEL_NAME"])
 
@@ -45,6 +45,7 @@ stub_image = Image.from_dockerfile(
     download_models,
     secrets=[Secret.from_dotenv(__file__)],
 )
+stub = Stub("stable-diffusion-cli")
 stub.image = stub_image
 
 
@@ -79,17 +80,19 @@ class StableDiffusion:
         ).to("cuda")
         self.pipe.enable_xformers_memory_efficient_attention()
 
+        self.upscaler = diffusers.StableDiffusionLatentUpscalePipeline.from_pretrained(
+            "stabilityai/sd-x2-latent-upscaler", torch_dtype=torch.float16
+        ).to("cuda")
+        self.upscaler.enable_xformers_memory_efficient_attention()
+
+        # model_id = "stabilityai/stable-diffusion-x4-upscaler"
+        # self.upscaler = diffusers.StableDiffusionUpscalePipeline.from_pretrained(
+        #     , revision="fp16", torch_dtype=torch.float16
+        # ).to("cuda")
+        # self.upscaler.enable_xformers_memory_efficient_attention()
+
     @method()
-    def run_inference(
-        self,
-        prompt: str,
-        n_prompt: str,
-        steps: int = 30,
-        batch_size: int = 1,
-        height: int = 512,
-        width: int = 512,
-        max_embeddings_multiples: int = 1,
-    ) -> list[bytes]:
+    def run_inference(self, inputs: dict[str, int | str]) -> list[bytes]:
         """
         Runs the Stable Diffusion pipeline on the given prompt and outputs images.
         """
@@ -98,13 +101,13 @@ class StableDiffusion:
         with torch.inference_mode():
             with torch.autocast("cuda"):
                 images = self.pipe(
-                    [prompt] * batch_size,
-                    negative_prompt=[n_prompt] * batch_size,
-                    height=height,
-                    width=width,
-                    num_inference_steps=steps,
+                    [inputs["prompt"]] * int(inputs["batch_size"]),
+                    negative_prompt=[inputs["n_prompt"]] * int(inputs["batch_size"]),
+                    height=inputs["height"],
+                    width=inputs["width"],
+                    num_inference_steps=inputs["steps"],
                     guidance_scale=7.5,
-                    max_embeddings_multiples=max_embeddings_multiples,
+                    max_embeddings_multiples=inputs["max_embeddings_multiples"],
                 ).images
 
         image_output = []
@@ -112,6 +115,19 @@ class StableDiffusion:
             with io.BytesIO() as buf:
                 image.save(buf, format="PNG")
                 image_output.append(buf.getvalue())
+
+        if inputs["upscaler"] != "":
+            upscaled_images = self.upscaler(
+                prompt=inputs["prompt"],
+                image=images,
+                num_inference_steps=inputs["steps"],
+                guidance_scale=0,
+            ).images
+            for image in upscaled_images:
+                with io.BytesIO() as buf:
+                    image.save(buf, format="PNG")
+                    image_output.append(buf.getvalue())
+
         return image_output
 
 
@@ -119,60 +135,45 @@ class StableDiffusion:
 def entrypoint(
     prompt: str,
     n_prompt: str,
-    samples: int = 5,
-    steps: int = 30,
-    batch_size: int = 1,
     height: int = 512,
     width: int = 512,
+    samples: int = 5,
+    batch_size: int = 1,
+    steps: int = 20,
+    upscaler: str = "",
 ):
     """
     This function is the entrypoint for the Runway CLI.
     The function pass the given prompt to StableDiffusion on Modal,
     gets back a list of images and outputs images to local.
-
-    The function is called with the following arguments:
-    - prompt: the prompt to run inference on
-    - n_prompt: the negative prompt to run inference on
-    - samples: the number of samples to generate
-    - steps: the number of steps to run inference for
-    - batch_size: the batch size to use
-    - height: the height of the output image
-    - width: the width of the output image
     """
-    print(f"steps => {steps}, sapmles => {samples}, batch_size => {batch_size}")
 
-    max_embeddings_multiples = 1
-    token_count = len(prompt.split())
-    if token_count > 77:
-        max_embeddings_multiples = token_count // 77 + 1
+    inputs: dict[str, int | str] = {
+        "prompt": prompt,
+        "n_prompt": n_prompt,
+        "height": height,
+        "width": width,
+        "samples": samples,
+        "batch_size": batch_size,
+        "steps": steps,
+        "upscaler": upscaler,  # sd_x2_latent_upscaler, sd_x4_upscaler
+        # seed=-1
+    }
 
-    print(
-        f"token_count => {token_count}, max_embeddings_multiples => {max_embeddings_multiples}"
-    )
+    inputs["max_embeddings_multiples"] = util.count_token(p=prompt, n=n_prompt)
+    directory = util.make_directory()
+    util.save_prompts(inputs)
 
-    directory = Path(f"./outputs/{date.today().strftime('%Y-%m-%d')}")
-    if not directory.exists():
-        directory.mkdir(exist_ok=True, parents=True)
-
-    stable_diffusion = StableDiffusion()
+    sd = StableDiffusion()
     for i in range(samples):
         start_time = time.time()
-        images = stable_diffusion.run_inference.call(
-            prompt,
-            n_prompt,
-            steps,
-            batch_size,
-            height,
-            width,
-            max_embeddings_multiples,
-        )
-        total_time = time.time() - start_time
-        print(
-            f"Sample {i} took {total_time:.3f}s ({(total_time)/len(images):.3f}s / image)."
-        )
+        images = sd.run_inference.call(inputs)
         for j, image_bytes in enumerate(images):
             formatted_time = time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
             output_path = directory / f"{formatted_time}_{i}_{j}.png"
             print(f"Saving it to {output_path}")
             with open(output_path, "wb") as file:
                 file.write(image_bytes)
+
+        total_time = time.time() - start_time
+        print(f"Sample {i} took {total_time:.3f}s ({(total_time)/len(images):.3f}s / image).")
