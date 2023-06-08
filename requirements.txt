@@ -1,9 +1,7 @@
 accelerate
-scipy
-diffusers[torch]
-safetensors
+diffusers[torch]==0.16.1
+onnxruntime==1.15.0
+safetensors==0.3.1
 torch==2.0.1+cu117
-torchvision
-torchmetrics
-omegaconf
-transformers
+transformers==4.29.2
+xformers==0.0.20
