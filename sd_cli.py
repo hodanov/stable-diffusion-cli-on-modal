@@ -218,7 +218,7 @@ def entrypoint(
         "samples": samples,
         "batch_size": batch_size,
         "steps": steps,
-        "upscaler": upscaler,  # sd_x2_latent_upscaler, sd_x4_upscaler
+        "upscaler": upscaler,
         # seed=-1
     }
 
