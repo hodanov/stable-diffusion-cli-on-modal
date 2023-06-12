@@ -144,6 +144,7 @@ class StableDiffusion:
     ) -> list[Image.Image]:
         """
         Upscales the given images using the given model.
+        https://github.com/xinntao/Real-ESRGAN
         """
         import numpy
         import torch
