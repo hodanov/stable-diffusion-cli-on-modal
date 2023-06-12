@@ -1,4 +1,5 @@
 """ Utility functions for the script. """
+import random
 import time
 from datetime import date
 from pathlib import Path
@@ -9,6 +10,16 @@ OUTPUT_DIRECTORY = "outputs"
 DATE_TODAY = date.today().strftime("%Y-%m-%d")
 
 
+def generate_seed() -> int:
+    """
+    Generate a random seed.
+    """
+    seed = random.randint(0, 4294967295)
+    print(f"Generate a random seed: {seed}")
+
+    return seed
+
+
 def make_directory() -> Path:
     """
     Make a directory for saving outputs.
@@ -16,7 +27,7 @@ def make_directory() -> Path:
     directory = Path(f"{OUTPUT_DIRECTORY}/{DATE_TODAY}")
     if not directory.exists():
         directory.mkdir(exist_ok=True, parents=True)
-        print(f"Make directory: {directory}")
+        print(f"Make a directory: {directory}")
 
     return directory
 
@@ -54,13 +65,13 @@ def count_token(p: str, n: str) -> int:
     return max_embeddings_multiples
 
 
-def save_images(directory: Path, images: list[bytes], i: int):
+def save_images(directory: Path, images: list[bytes], inputs: dict[str, int | str], i: int):
     """
     Save images to a file.
     """
     for j, image_bytes in enumerate(images):
         formatted_time = time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
-        output_path = directory / f"{formatted_time}_{i}_{j}.png"
+        output_path = directory / f"{formatted_time}_{inputs['seed']}_{i}_{j}.png"
         print(f"Saving it to {output_path}")
         with open(output_path, "wb") as file:
             file.write(image_bytes)
