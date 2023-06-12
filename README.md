@@ -6,7 +6,7 @@ This is the script to execute Stable Diffusion on [Modal](https://modal.com/).
 
 The app requires the following to run:
 
-- python: v3.10 >
+- python: > 3.10
 - modal-client
 - A token for Modal.
 

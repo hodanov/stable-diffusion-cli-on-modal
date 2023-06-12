@@ -1,12 +1,12 @@
 from __future__ import annotations
+
 import io
 import os
 import time
-from datetime import date
-from pathlib import Path
-from modal import Image, Secret, Stub, method, Mount
 
-stub = Stub("stable-diffusion-cli")
+from modal import Image, Mount, Secret, Stub, method
+
+import util
 
 BASE_CACHE_PATH = "/vol/cache"
 
@@ -18,9 +18,16 @@ def download_models():
     """
     import diffusers
 
-    hugging_face_token = os.environ["HUGGINGFACE_TOKEN"]
+    hugging_face_token = os.environ["HUGGING_FACE_TOKEN"]
     model_repo_id = os.environ["MODEL_REPO_ID"]
     cache_path = os.path.join(BASE_CACHE_PATH, os.environ["MODEL_NAME"])
+
+    vae = diffusers.AutoencoderKL.from_pretrained(
+        "stabilityai/sd-vae-ft-mse",
+        use_auth_token=hugging_face_token,
+        cache_dir=cache_path,
+    )
+    vae.save_pretrained(cache_path, safe_serialization=True)
 
     scheduler = diffusers.EulerAncestralDiscreteScheduler.from_pretrained(
         model_repo_id,
@@ -45,6 +52,7 @@ stub_image = Image.from_dockerfile(
     download_models,
     secrets=[Secret.from_dotenv(__file__)],
 )
+stub = Stub("stable-diffusion-cli")
 stub.image = stub_image
 
 
@@ -67,6 +75,11 @@ class StableDiffusion:
 
         torch.backends.cuda.matmul.allow_tf32 = True
 
+        vae = diffusers.AutoencoderKL.from_pretrained(
+            cache_path,
+            subfolder="vae",
+        )
+
         scheduler = diffusers.EulerAncestralDiscreteScheduler.from_pretrained(
             cache_path,
             subfolder="scheduler",
@@ -75,21 +88,14 @@ class StableDiffusion:
         self.pipe = diffusers.StableDiffusionPipeline.from_pretrained(
             cache_path,
             scheduler=scheduler,
+            vae=vae,
             custom_pipeline="lpw_stable_diffusion",
+            torch_dtype=torch.float16,
         ).to("cuda")
         self.pipe.enable_xformers_memory_efficient_attention()
 
     @method()
-    def run_inference(
-        self,
-        prompt: str,
-        n_prompt: str,
-        steps: int = 30,
-        batch_size: int = 1,
-        height: int = 512,
-        width: int = 512,
-        max_embeddings_multiples: int = 1,
-    ) -> list[bytes]:
+    def run_inference(self, inputs: dict[str, int | str]) -> list[bytes]:
         """
         Runs the Stable Diffusion pipeline on the given prompt and outputs images.
         """
@@ -97,82 +103,134 @@ class StableDiffusion:
 
         with torch.inference_mode():
             with torch.autocast("cuda"):
-                images = self.pipe(
-                    [prompt] * batch_size,
-                    negative_prompt=[n_prompt] * batch_size,
-                    height=height,
-                    width=width,
-                    num_inference_steps=steps,
+                base_images = self.pipe(
+                    [inputs["prompt"]] * int(inputs["batch_size"]),
+                    negative_prompt=[inputs["n_prompt"]] * int(inputs["batch_size"]),
+                    height=inputs["height"],
+                    width=inputs["width"],
+                    num_inference_steps=inputs["steps"],
                     guidance_scale=7.5,
-                    max_embeddings_multiples=max_embeddings_multiples,
+                    max_embeddings_multiples=inputs["max_embeddings_multiples"],
                 ).images
 
+        if inputs["upscaler"] != "":
+            uplcaled_images = self.upscale(
+                base_images=base_images,
+                model_name="RealESRGAN_x4plus",
+                scale_factor=4,
+                half_precision=False,
+                tile=700,
+            )
+            base_images.extend(uplcaled_images)
+
         image_output = []
-        for image in images:
+        for image in base_images:
             with io.BytesIO() as buf:
                 image.save(buf, format="PNG")
                 image_output.append(buf.getvalue())
+
         return image_output
+
+    @method()
+    def upscale(
+        self,
+        base_images: list[Image.Image],
+        model_name: str = "RealESRGAN_x4plus",
+        scale_factor: float = 4,
+        half_precision: bool = False,
+        tile: int = 0,
+        tile_pad: int = 10,
+        pre_pad: int = 0,
+    ) -> list[Image.Image]:
+        """
+        Upscales the given images using the given model.
+        https://github.com/xinntao/Real-ESRGAN
+        """
+        import numpy
+        import torch
+        from basicsr.archs.rrdbnet_arch import RRDBNet
+        from PIL import Image
+        from realesrgan import RealESRGANer
+        from tqdm import tqdm
+
+        if model_name == "RealESRGAN_x4plus":
+            upscale_model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4)
+            netscale = 4
+        elif model_name == "RealESRNet_x4plus":
+            upscale_model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4)
+            netscale = 4
+        elif model_name == "RealESRGAN_x4plus_anime_6B":
+            upscale_model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=6, num_grow_ch=32, scale=4)
+            netscale = 4
+        elif model_name == "RealESRGAN_x2plus":
+            upscale_model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=2)
+            netscale = 2
+        else:
+            raise NotImplementedError("Model name not supported")
+
+        upsampler = RealESRGANer(
+            scale=netscale,
+            model_path=os.path.join(BASE_CACHE_PATH, "esrgan", f"{model_name}.pth"),
+            dni_weight=None,
+            model=upscale_model,
+            tile=tile,
+            tile_pad=tile_pad,
+            pre_pad=pre_pad,
+            half=half_precision,
+            gpu_id=None,
+        )
+
+        torch.cuda.empty_cache()
+        upscaled_imgs = []
+        with tqdm(total=len(base_images)) as progress_bar:
+            for i, img in enumerate(base_images):
+                img = numpy.array(img)
+                enhance_result = upsampler.enhance(img)[0]
+                upscaled_imgs.append(Image.fromarray(enhance_result))
+                progress_bar.update(1)
+        torch.cuda.empty_cache()
+
+        return upscaled_imgs
 
 
 @stub.local_entrypoint()
 def entrypoint(
     prompt: str,
     n_prompt: str,
-    samples: int = 5,
-    steps: int = 30,
-    batch_size: int = 1,
     height: int = 512,
     width: int = 512,
+    samples: int = 5,
+    batch_size: int = 1,
+    steps: int = 20,
+    upscaler: str = "",
 ):
     """
     This function is the entrypoint for the Runway CLI.
     The function pass the given prompt to StableDiffusion on Modal,
     gets back a list of images and outputs images to local.
-
-    The function is called with the following arguments:
-    - prompt: the prompt to run inference on
-    - n_prompt: the negative prompt to run inference on
-    - samples: the number of samples to generate
-    - steps: the number of steps to run inference for
-    - batch_size: the batch size to use
-    - height: the height of the output image
-    - width: the width of the output image
     """
-    print(f"steps => {steps}, sapmles => {samples}, batch_size => {batch_size}")
 
-    max_embeddings_multiples = 1
-    token_count = len(prompt.split())
-    if token_count > 77:
-        max_embeddings_multiples = token_count // 77 + 1
+    inputs: dict[str, int | str] = {
+        "prompt": prompt,
+        "n_prompt": n_prompt,
+        "height": height,
+        "width": width,
+        "samples": samples,
+        "batch_size": batch_size,
+        "steps": steps,
+        "upscaler": upscaler,  # sd_x2_latent_upscaler, sd_x4_upscaler
+        # seed=-1
+    }
 
-    print(
-        f"token_count => {token_count}, max_embeddings_multiples => {max_embeddings_multiples}"
-    )
+    inputs["max_embeddings_multiples"] = util.count_token(p=prompt, n=n_prompt)
+    directory = util.make_directory()
 
-    directory = Path(f"./outputs/{date.today().strftime('%Y-%m-%d')}")
-    if not directory.exists():
-        directory.mkdir(exist_ok=True, parents=True)
-
-    stable_diffusion = StableDiffusion()
+    sd = StableDiffusion()
     for i in range(samples):
         start_time = time.time()
-        images = stable_diffusion.run_inference.call(
-            prompt,
-            n_prompt,
-            steps,
-            batch_size,
-            height,
-            width,
-            max_embeddings_multiples,
-        )
+        images = sd.run_inference.call(inputs)
+        util.save_images(directory, images, i)
         total_time = time.time() - start_time
-        print(
-            f"Sample {i} took {total_time:.3f}s ({(total_time)/len(images):.3f}s / image)."
-        )
-        for j, image_bytes in enumerate(images):
-            formatted_time = time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
-            output_path = directory / f"{formatted_time}_{i}_{j}.png"
-            print(f"Saving it to {output_path}")
-            with open(output_path, "wb") as file:
-                file.write(image_bytes)
+        print(f"Sample {i} took {total_time:.3f}s ({(total_time)/len(images):.3f}s / image).")
+
+    util.save_prompts(inputs)
