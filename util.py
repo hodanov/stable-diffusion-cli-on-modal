@@ -4,8 +4,6 @@ import time
 from datetime import date
 from pathlib import Path
 
-from PIL import Image
-
 OUTPUT_DIRECTORY = "outputs"
 DATE_TODAY = date.today().strftime("%Y-%m-%d")
 
@@ -65,13 +63,13 @@ def count_token(p: str, n: str) -> int:
     return max_embeddings_multiples
 
 
-def save_images(directory: Path, images: list[bytes], inputs: dict[str, int | str], i: int):
+def save_images(directory: Path, images: list[bytes], seed: int, i: int):
     """
     Save images to a file.
     """
     for j, image_bytes in enumerate(images):
         formatted_time = time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
-        output_path = directory / f"{formatted_time}_{inputs['seed']}_{i}_{j}.png"
+        output_path = directory / f"{formatted_time}_{seed}_{i}_{j}.png"
         print(f"Saving it to {output_path}")
         with open(output_path, "wb") as file:
             file.write(image_bytes)

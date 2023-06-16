@@ -75,23 +75,31 @@ class StableDiffusion:
 
         torch.backends.cuda.matmul.allow_tf32 = True
 
-        vae = diffusers.AutoencoderKL.from_pretrained(
-            cache_path,
-            subfolder="vae",
-        )
-
         scheduler = diffusers.EulerAncestralDiscreteScheduler.from_pretrained(
             cache_path,
             subfolder="scheduler",
         )
 
-        self.pipe = diffusers.StableDiffusionPipeline.from_pretrained(
-            cache_path,
-            scheduler=scheduler,
-            vae=vae,
-            custom_pipeline="lpw_stable_diffusion",
-            torch_dtype=torch.float16,
-        ).to("cuda")
+        if os.environ["USE_VAE"] == "true":
+            vae = diffusers.AutoencoderKL.from_pretrained(
+                cache_path,
+                subfolder="vae",
+            )
+            self.pipe = diffusers.StableDiffusionPipeline.from_pretrained(
+                cache_path,
+                scheduler=scheduler,
+                vae=vae,
+                custom_pipeline="lpw_stable_diffusion",
+                torch_dtype=torch.float16,
+            ).to("cuda")
+        else:
+            self.pipe = diffusers.StableDiffusionPipeline.from_pretrained(
+                cache_path,
+                scheduler=scheduler,
+                custom_pipeline="lpw_stable_diffusion",
+                torch_dtype=torch.float16,
+            ).to("cuda")
+
         self.pipe.enable_xformers_memory_efficient_attention()
 
     @method()
@@ -213,9 +221,6 @@ def entrypoint(
     gets back a list of images and outputs images to local.
     """
 
-    if seed == -1:
-        seed = util.generate_seed()
-
     inputs: dict[str, int | str] = {
         "prompt": prompt,
         "n_prompt": n_prompt,
@@ -233,9 +238,11 @@ def entrypoint(
 
     sd = StableDiffusion()
     for i in range(samples):
+        if seed == -1:
+            inputs["seed"] = util.generate_seed()
         start_time = time.time()
         images = sd.run_inference.call(inputs)
-        util.save_images(directory, images, inputs, i)
+        util.save_images(directory, images, int(inputs["seed"]), i)
         total_time = time.time() - start_time
         print(f"Sample {i} took {total_time:.3f}s ({(total_time)/len(images):.3f}s / image).")
 

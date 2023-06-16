@@ -6,5 +6,4 @@ run:
 	--height 768 \
 	--width 512 \
 	--samples 5 \
-	--steps 50 \
-	--seed 500
+	--steps 50
