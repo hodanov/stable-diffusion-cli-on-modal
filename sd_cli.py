@@ -75,23 +75,31 @@ class StableDiffusion:
 
         torch.backends.cuda.matmul.allow_tf32 = True
 
-        vae = diffusers.AutoencoderKL.from_pretrained(
-            cache_path,
-            subfolder="vae",
-        )
-
         scheduler = diffusers.EulerAncestralDiscreteScheduler.from_pretrained(
             cache_path,
             subfolder="scheduler",
         )
 
-        self.pipe = diffusers.StableDiffusionPipeline.from_pretrained(
-            cache_path,
-            scheduler=scheduler,
-            vae=vae,
-            custom_pipeline="lpw_stable_diffusion",
-            torch_dtype=torch.float16,
-        ).to("cuda")
+        if os.environ["USE_VAE"] == "true":
+            vae = diffusers.AutoencoderKL.from_pretrained(
+                cache_path,
+                subfolder="vae",
+            )
+            self.pipe = diffusers.StableDiffusionPipeline.from_pretrained(
+                cache_path,
+                scheduler=scheduler,
+                vae=vae,
+                custom_pipeline="lpw_stable_diffusion",
+                torch_dtype=torch.float16,
+            ).to("cuda")
+        else:
+            self.pipe = diffusers.StableDiffusionPipeline.from_pretrained(
+                cache_path,
+                scheduler=scheduler,
+                custom_pipeline="lpw_stable_diffusion",
+                torch_dtype=torch.float16,
+            ).to("cuda")
+
         self.pipe.enable_xformers_memory_efficient_attention()
 
     @method()
@@ -101,6 +109,7 @@ class StableDiffusion:
         """
         import torch
 
+        generator = torch.Generator("cuda").manual_seed(inputs["seed"])
         with torch.inference_mode():
             with torch.autocast("cuda"):
                 base_images = self.pipe(
@@ -111,6 +120,7 @@ class StableDiffusion:
                     num_inference_steps=inputs["steps"],
                     guidance_scale=7.5,
                     max_embeddings_multiples=inputs["max_embeddings_multiples"],
+                    generator=generator,
                 ).images
 
         if inputs["upscaler"] != "":
@@ -197,12 +207,13 @@ class StableDiffusion:
 def entrypoint(
     prompt: str,
     n_prompt: str,
+    upscaler: str,
     height: int = 512,
     width: int = 512,
     samples: int = 5,
     batch_size: int = 1,
     steps: int = 20,
-    upscaler: str = "",
+    seed: int = -1,
 ):
     """
     This function is the entrypoint for the Runway CLI.
@@ -219,7 +230,7 @@ def entrypoint(
         "batch_size": batch_size,
         "steps": steps,
         "upscaler": upscaler,
-        # seed=-1
+        "seed": seed,
     }
 
     inputs["max_embeddings_multiples"] = util.count_token(p=prompt, n=n_prompt)
@@ -227,9 +238,11 @@ def entrypoint(
 
     sd = StableDiffusion()
     for i in range(samples):
+        if seed == -1:
+            inputs["seed"] = util.generate_seed()
         start_time = time.time()
         images = sd.run_inference.call(inputs)
-        util.save_images(directory, images, i)
+        util.save_images(directory, images, int(inputs["seed"]), i)
         total_time = time.time() - start_time
         print(f"Sample {i} took {total_time:.3f}s ({(total_time)/len(images):.3f}s / image).")
 
