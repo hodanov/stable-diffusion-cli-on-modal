@@ -137,6 +137,29 @@ class StableDiffusion:
         self.pipe.enable_xformers_memory_efficient_attention()
 
     @method()
+    def count_token(self, p: str, n: str) -> int:
+        """
+        Count the number of tokens in the prompt and negative prompt.
+        """
+        from transformers import CLIPTokenizer
+
+        tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
+        token_size_p = len(tokenizer.tokenize(p))
+        token_size_n = len(tokenizer.tokenize(n))
+        token_size = token_size_p
+        if token_size_p <= token_size_n:
+            token_size = token_size_n
+
+        max_embeddings_multiples = 1
+        max_length = tokenizer.model_max_length - 2
+        if token_size > max_length:
+            max_embeddings_multiples = token_size // max_length + 1
+
+        print(f"token_size: {token_size}, max_embeddings_multiples: {max_embeddings_multiples}")
+
+        return max_embeddings_multiples
+
+    @method()
     def run_inference(self, inputs: dict[str, int | str]) -> list[bytes]:
         """
         Runs the Stable Diffusion pipeline on the given prompt and outputs images.
@@ -267,10 +290,10 @@ def entrypoint(
         "seed": seed,
     }
 
-    inputs["max_embeddings_multiples"] = util.count_token(p=prompt, n=n_prompt)
     directory = util.make_directory()
 
     sd = StableDiffusion()
+    inputs["max_embeddings_multiples"] = sd.count_token(p=prompt, n=n_prompt)
     for i in range(samples):
         if seed == -1:
             inputs["seed"] = util.generate_seed()
