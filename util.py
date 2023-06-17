@@ -43,26 +43,6 @@ def save_prompts(inputs: dict):
         print(f"Save prompts: {prompts_filename}.txt")
 
 
-def count_token(p: str, n: str) -> int:
-    """
-    Count the number of tokens in the prompt and negative prompt.
-    """
-    token_count_p = len(p.split())
-    token_count_n = len(n.split())
-    if token_count_p >= token_count_n:
-        token_count = token_count_p
-    else:
-        token_count = token_count_n
-
-    max_embeddings_multiples = 1
-    if token_count > 77:
-        max_embeddings_multiples = token_count // 77 + 1
-
-    print(f"token_count: {token_count}, max_embeddings_multiples: {max_embeddings_multiples}")
-
-    return max_embeddings_multiples
-
-
 def save_images(directory: Path, images: list[bytes], seed: int, i: int):
     """
     Save images to a file.
