@@ -104,30 +104,24 @@ class StableDiffusion:
 
         torch.backends.cuda.matmul.allow_tf32 = True
 
-        scheduler = diffusers.EulerAncestralDiscreteScheduler.from_pretrained(
+        self.pipe = diffusers.StableDiffusionPipeline.from_pretrained(
+            cache_path,
+            custom_pipeline="lpw_stable_diffusion",
+            torch_dtype=torch.float16,
+        )
+
+        self.pipe.scheduler = diffusers.EulerAncestralDiscreteScheduler.from_pretrained(
             cache_path,
             subfolder="scheduler",
         )
 
         if os.environ["USE_VAE"] == "true":
-            vae = diffusers.AutoencoderKL.from_pretrained(
+            self.pipe.vae = diffusers.AutoencoderKL.from_pretrained(
                 cache_path,
                 subfolder="vae",
             )
-            self.pipe = diffusers.StableDiffusionPipeline.from_pretrained(
-                cache_path,
-                scheduler=scheduler,
-                vae=vae,
-                custom_pipeline="lpw_stable_diffusion",
-                torch_dtype=torch.float16,
-            ).to("cuda")
-        else:
-            self.pipe = diffusers.StableDiffusionPipeline.from_pretrained(
-                cache_path,
-                scheduler=scheduler,
-                custom_pipeline="lpw_stable_diffusion",
-                torch_dtype=torch.float16,
-            ).to("cuda")
+
+        self.pipe.to("cuda")
 
         if os.environ["LORA_NAMES"] != "":
             lora_names = os.getenv("LORA_NAMES").split(",")
