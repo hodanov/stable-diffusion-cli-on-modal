@@ -1,5 +1,7 @@
 # Stable Diffusion Modal
 
+![A woman with medium hair looking at me, with flowers in full bloom, (flora:1.0),(effect: Vibrant Color:1.4), a head shot](assets/20230619000640_3238568710_0_0.png)
+
 This is the script to execute Stable Diffusion on [Modal](https://modal.com/).
 
 ## Requirements
