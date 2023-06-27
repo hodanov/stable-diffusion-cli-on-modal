@@ -30,7 +30,6 @@ def main(
         if seed == -1:
             seed_generated = util.generate_seed()
         start_time = time.time()
-        # images = sd.run_inference(seed=seed_generated)
         images = stub.app.run_inference.call(
             prompt=prompt,
             n_prompt=n_prompt,
