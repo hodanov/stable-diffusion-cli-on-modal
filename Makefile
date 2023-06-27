@@ -1,5 +1,5 @@
 deploy:
-	modal deploy sdcli.py
+	modal deploy setup.py
 
 run:
 	modal run entrypoint.py \
