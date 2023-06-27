@@ -1,8 +1,11 @@
+deploy:
+	modal deploy sdcli.py
+
 run:
-	modal run sd_cli.py \
-	--prompt "A woman with bob hair" \
+	modal run entrypoint.py \
+	--prompt "a photograph of an astronaut riding a horse" \
 	--n-prompt "" \
-	--height 768 \
+	--height 512 \
 	--width 512 \
-	--samples 5 \
-	--steps 30
+	--samples 1 \
+	--steps 50
