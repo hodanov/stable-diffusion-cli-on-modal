@@ -16,6 +16,9 @@ def main(
     batch_size: int = 1,
     steps: int = 20,
     seed: int = -1,
+    upscaler: str = "",
+    use_face_enhancer: str = "False",
+    use_hires_fix: str = "False",
 ):
     """
     This function is the entrypoint for the Runway CLI.
@@ -38,6 +41,9 @@ def main(
             batch_size=batch_size,
             steps=steps,
             seed=seed_generated,
+            upscaler=upscaler,
+            use_face_enhancer=use_face_enhancer == "True",
+            use_hires_fix=use_hires_fix == "True",
         )
         util.save_images(directory, images, seed_generated, i)
         total_time = time.time() - start_time
