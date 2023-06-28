@@ -97,10 +97,6 @@ class StableDiffusion(ClsMixin):
         import diffusers
         import torch
 
-        self.use_vae = os.environ["USE_VAE"] == "true"
-        self.upscaler = os.environ["UPSCALER"]
-        self.use_face_enhancer = os.environ["USE_FACE_ENHANCER"] == "true"
-        self.use_hires_fix = os.environ["USE_HIRES_FIX"] == "true"
         self.cache_path = os.path.join(BASE_CACHE_PATH, os.environ["MODEL_NAME"])
         if os.path.exists(self.cache_path):
             print(f"The directory '{self.cache_path}' exists.")
@@ -123,7 +119,7 @@ class StableDiffusion(ClsMixin):
             subfolder="scheduler",
         )
 
-        if self.use_vae:
+        if os.environ["USE_VAE"] == "true":
             self.pipe.vae = diffusers.AutoencoderKL.from_pretrained(
                 self.cache_path,
                 subfolder="vae",
@@ -194,6 +190,9 @@ class StableDiffusion(ClsMixin):
         batch_size: int = 1,
         steps: int = 30,
         seed: int = 1,
+        upscaler: str = "",
+        use_face_enhancer: bool = False,
+        use_hires_fix: bool = False,
     ) -> list[bytes]:
         """
         Runs the Stable Diffusion pipeline on the given prompt and outputs images.
@@ -215,14 +214,17 @@ class StableDiffusion(ClsMixin):
                     generator=generator,
                 ).images
 
-        if self.upscaler != "":
+        if upscaler != "":
             upscaled = self.upscale(
                 base_images=base_images,
                 half_precision=False,
                 tile=700,
+                upscaler=upscaler,
+                use_face_enhancer=use_face_enhancer,
+                use_hires_fix=use_hires_fix,
             )
             base_images.extend(upscaled)
-            if self.use_hires_fix:
+            if use_hires_fix:
                 torch.cuda.empty_cache()
                 for img in upscaled:
                     with torch.inference_mode():
@@ -256,6 +258,9 @@ class StableDiffusion(ClsMixin):
         tile: int = 0,
         tile_pad: int = 10,
         pre_pad: int = 0,
+        upscaler: str = "",
+        use_face_enhancer: bool = False,
+        use_hires_fix: bool = False,
     ) -> list[Image.Image]:
         """
         Upscales the given images using the given model.
@@ -268,7 +273,7 @@ class StableDiffusion(ClsMixin):
         from realesrgan import RealESRGANer
         from tqdm import tqdm
 
-        model_name = self.upscaler
+        model_name = upscaler
         if model_name == "RealESRGAN_x4plus":
             upscale_model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4)
             netscale = 4
@@ -298,7 +303,7 @@ class StableDiffusion(ClsMixin):
 
         from gfpgan import GFPGANer
 
-        if self.use_face_enhancer:
+        if use_face_enhancer:
             face_enhancer = GFPGANer(
                 model_path=os.path.join(BASE_CACHE_PATH, "esrgan", "GFPGANv1.3.pth"),
                 upscale=netscale,
@@ -312,7 +317,7 @@ class StableDiffusion(ClsMixin):
         with tqdm(total=len(base_images)) as progress_bar:
             for img in base_images:
                 img = numpy.array(img)
-                if self.use_face_enhancer:
+                if use_face_enhancer:
                     _, _, enhance_result = face_enhancer.enhance(
                         img,
                         has_aligned=False,
