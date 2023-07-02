@@ -357,7 +357,6 @@ class StableDiffusion(ClsMixin):
         https://github.com/xinntao/Real-ESRGAN
         """
         import numpy
-        import torch
         from basicsr.archs.rrdbnet_arch import RRDBNet
         from PIL import Image
         from realesrgan import RealESRGANer
