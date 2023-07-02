@@ -1,5 +1,8 @@
 .DS_Store
-.mypy_cache/
-__pycache__/
-outputs/
 .env
+.mypy_cache/
+.python-version
+__pycache__/
+config.yml
+memo.md
+outputs/

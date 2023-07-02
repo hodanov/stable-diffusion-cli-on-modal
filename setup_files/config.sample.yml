@@ -1,0 +1,38 @@
+##########
+# This is the config file to set a base model, vae and some tools.
+# Rename the file to `config.yml` before running the script.
+# Execute `modal deploy ./setup_files/setup.py` every time modify this file.
+##########
+
+##########
+# You can use a diffusers model and VAE on hugging face.
+model:
+  name: stable-diffusion-2-1
+  repo_id: stabilityai/stable-diffusion-2-1
+vae:
+  name: sd-vae-ft-mse
+  repo_id: stabilityai/sd-vae-ft-mse
+##########
+# Add LoRA if you want to use one. You can use a download url such as the below.
+# ex)
+# loras:
+#   - name: hogehoge.safetensors
+#     download_url: https://hogehoge/xxxx
+#   - name: fugafuga.safetensors
+#     download_url: https://fugafuga/xxxx
+
+##########
+# You can use Textual Inversion and ControlNet also. Usage is the same as `loras`.
+# ex)
+# textual_inversions:
+#   - name: hogehoge
+#     download_url: https://hogehoge/xxxx
+#   - name: fugafuga
+#     download_url: https://fugafuga/xxxx
+# cotrolnets:
+#   - name: control_v11f1e_sd15_tile
+#     repo_id: lllyasviel/control_v11f1e_sd15_tile
+# upscaler:
+#   name: RealESRGAN_x2plus
+#   use_face_enhancer: false
+#   use_hires_fix: false
