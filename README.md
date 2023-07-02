@@ -29,7 +29,7 @@ Please see [the documentation of Modal](https://modal.com/docs/guide) for modals
 To use the script, execute the below.
 
 1. git clone the repository.
-2. Create the `./setup_files/.env` file and set a huggingface API token with reference to `./setup_files/.env.example`.
+2. Create the `.env` file and set a huggingface API token with reference to `.env.example`.
 3. Copy `./setup_files/config.sample.yml` to `./setup_files/config.yml`
 4. Open the Makefile and set prompts.
 5. Execute `make deploy` command. An application will be deployed to Modal.
