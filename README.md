@@ -41,19 +41,19 @@ Images are generated and output to the `outputs/` directory.
 
 ```
 .
+├── .env                    # Secrets manager
 ├── Makefile
 ├── README.md
 ├── sdcli/                  # A directory with scripts to run inference.
 │   ├── __init__.py
-│   ├── outputs/                # Images are outputted this directory.
-│   ├── txt2img.py              # A script to run txt2img inference.
+│   ├── outputs/            # Images are outputted this directory.
+│   ├── txt2img.py          # A script to run txt2img inference.
 │   └── util.py
 └── setup_files/            # A directory with config files.
-    ├── .env                    # Secrets manager
-    ├── Dockerfile              # To build a base image.
-    ├── config.yml              # To set a model, vae and some tools.
+    ├── Dockerfile          # To build a base image.
+    ├── config.yml          # To set a model, vae and some tools.
     ├── requirements.txt
-    └── setup.py                # Build an application to deploy on Modal.
+    └── setup.py            # Build an application to deploy on Modal.
 ```
 
 Thank you.
