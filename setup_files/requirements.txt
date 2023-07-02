@@ -15,3 +15,6 @@ opencv-python
 Pillow
 torchvision
 tqdm
+
+controlnet_aux
+pyyaml

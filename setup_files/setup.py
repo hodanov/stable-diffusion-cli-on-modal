@@ -4,52 +4,63 @@ import io
 import os
 from urllib.request import Request, urlopen
 
+import diffusers
+import yaml
 from modal import Image, Mount, Secret, Stub, method
 from modal.cls import ClsMixin
 
 BASE_CACHE_PATH = "/vol/cache"
 BASE_CACHE_PATH_LORA = "/vol/cache/lora"
 BASE_CACHE_PATH_TEXTUAL_INVERSION = "/vol/cache/textual_inversion"
+BASE_CACHE_PATH_CONTROLNET = "/vol/cache/controlnet"
 
 
-def download_files(urls, file_names, file_path):
+def download_file(url, file_name, file_path):
     """
     Download files.
     """
-    file_names = file_names.split(",")
-    urls = urls.split(",")
-
-    for file_name, url in zip(file_names, urls):
-        req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        downloaded = urlopen(req).read()
-
-        dir_names = os.path.join(file_path, file_name)
-        os.makedirs(os.path.dirname(dir_names), exist_ok=True)
-        with open(dir_names, mode="wb") as f:
-            f.write(downloaded)
+    req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    downloaded = urlopen(req).read()
+    dir_names = os.path.join(file_path, file_name)
+    os.makedirs(os.path.dirname(dir_names), exist_ok=True)
+    with open(dir_names, mode="wb") as f:
+        f.write(downloaded)
 
 
-def download_models():
+def download_controlnet(name: str, repo_id: str, token: str):
     """
-    Downloads the model from Hugging Face and saves it to the cache path using
-    diffusers.StableDiffusionPipeline.from_pretrained().
+    Download a controlnet.
     """
-    import diffusers
+    cache_path = os.path.join(BASE_CACHE_PATH_CONTROLNET, name)
+    controlnet = diffusers.ControlNetModel.from_pretrained(
+        repo_id,
+        use_auth_token=token,
+        cache_dir=cache_path,
+    )
+    controlnet.save_pretrained(cache_path, safe_serialization=True)
 
-    hugging_face_token = os.environ["HUGGING_FACE_TOKEN"]
-    model_repo_id = os.environ["MODEL_REPO_ID"]
-    cache_path = os.path.join(BASE_CACHE_PATH, os.environ["MODEL_NAME"])
 
+def download_vae(name: str, repo_id: str, token: str):
+    """
+    Download a vae.
+    """
+    cache_path = os.path.join(BASE_CACHE_PATH, name)
     vae = diffusers.AutoencoderKL.from_pretrained(
-        "stabilityai/sd-vae-ft-mse",
-        use_auth_token=hugging_face_token,
+        repo_id,
+        use_auth_token=token,
         cache_dir=cache_path,
     )
     vae.save_pretrained(cache_path, safe_serialization=True)
 
+
+def download_model(name: str, repo_id: str, token: str):
+    """
+    Download a model.
+    """
+    cache_path = os.path.join(BASE_CACHE_PATH, name)
     pipe = diffusers.StableDiffusionPipeline.from_pretrained(
-        model_repo_id,
-        use_auth_token=hugging_face_token,
+        repo_id,
+        use_auth_token=token,
         cache_dir=cache_path,
     )
     pipe.save_pretrained(cache_path, safe_serialization=True)
@@ -59,52 +70,82 @@ def build_image():
     """
     Build the Docker image.
     """
-    download_models()
+    token = os.environ["HUGGING_FACE_TOKEN"]
+    config = {}
+    with open("/config.yml", "r") as file:
+        config = yaml.safe_load(file)
 
-    if os.environ["LORA_NAMES"] != "":
-        download_files(
-            os.getenv("LORA_DOWNLOAD_URLS"),
-            os.getenv("LORA_NAMES"),
-            BASE_CACHE_PATH_LORA,
-        )
+    model = config.get("model")
+    if model is not None:
+        download_model(name=model["name"], repo_id=model["repo_id"], token=token)
 
-    if os.environ["TEXTUAL_INVERSION_NAMES"] != "":
-        download_files(
-            os.getenv("TEXTUAL_INVERSION_DOWNLOAD_URLS"),
-            os.getenv("TEXTUAL_INVERSION_NAMES"),
-            BASE_CACHE_PATH_TEXTUAL_INVERSION,
-        )
+    vae = config.get("vae")
+    if vae is not None:
+        download_vae(name=model["name"], repo_id=vae["repo_id"], token=token)
+
+    controlnets = config.get("controlnets")
+    if controlnets is not None:
+        for controlnet in controlnets:
+            download_controlnet(name=controlnet["name"], repo_id=controlnet["repo_id"], token=token)
+
+    loras = config.get("loras")
+    if loras is not None:
+        for lora in loras:
+            download_file(
+                url=lora["download_url"],
+                file_name=lora["name"],
+                file_path=BASE_CACHE_PATH_LORA,
+            )
+
+    textual_inversions = config.get("textual_inversions")
+    if textual_inversions is not None:
+        for textual_inversion in textual_inversions:
+            download_file(
+                url=textual_inversion["download_url"],
+                file_name=textual_inversion["name"],
+                file_path=BASE_CACHE_PATH_TEXTUAL_INVERSION,
+            )
 
 
-stub_image = Image.from_dockerfile(
-    path="./Dockerfile",
-    context_mount=Mount.from_local_file("./requirements.txt"),
+stub = Stub("stable-diffusion-cli")
+base_stub = Image.from_dockerfile(
+    path="./setup_files/Dockerfile",
+    context_mount=Mount.from_local_file("./setup_files/requirements.txt"),
+)
+stub.image = base_stub.extend(
+    dockerfile_commands=[
+        "FROM base",
+        "COPY ./config.yml /",
+    ],
+    context_mount=Mount.from_local_file("./setup_files/config.yml"),
 ).run_function(
     build_image,
     secrets=[Secret.from_dotenv(__file__)],
 )
-stub = Stub("stable-diffusion-cli")
-stub.image = stub_image
 
 
-@stub.cls(gpu="A10G", secrets=[Secret.from_dotenv(__file__)])
+@stub.cls(
+    gpu="A10G",
+    secrets=[Secret.from_dotenv(__file__)],
+)
 class StableDiffusion(ClsMixin):
     """
     A class that wraps the Stable Diffusion pipeline and scheduler.
     """
 
     def __enter__(self):
-        import diffusers
         import torch
 
-        self.cache_path = os.path.join(BASE_CACHE_PATH, os.environ["MODEL_NAME"])
+        config = {}
+        with open("/config.yml", "r") as file:
+            config = yaml.safe_load(file)
+        self.cache_path = os.path.join(BASE_CACHE_PATH, config["model"]["name"])
         if os.path.exists(self.cache_path):
             print(f"The directory '{self.cache_path}' exists.")
         else:
-            print(f"The directory '{self.cache_path}' does not exist. Download models...")
-            download_models()
+            print(f"The directory '{self.cache_path}' does not exist.")
 
-        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.cuda.memory._set_allocator_settings("max_split_size_mb:256")
 
         self.pipe = diffusers.StableDiffusionPipeline.from_pretrained(
             self.cache_path,
@@ -119,39 +160,64 @@ class StableDiffusion(ClsMixin):
             subfolder="scheduler",
         )
 
-        if os.environ["USE_VAE"] == "true":
+        vae = config.get("vae")
+        if vae is not None:
             self.pipe.vae = diffusers.AutoencoderKL.from_pretrained(
                 self.cache_path,
                 subfolder="vae",
             )
-
         self.pipe.to("cuda")
 
-        if os.environ["LORA_NAMES"] != "":
-            names = os.environ["LORA_NAMES"].split(",")
-            urls = os.environ["LORA_DOWNLOAD_URLS"].split(",")
-            for name, url in zip(names, urls):
-                path = os.path.join(BASE_CACHE_PATH_LORA, name)
+        loras = config.get("loras")
+        if loras is not None:
+            for lora in loras:
+                path = os.path.join(BASE_CACHE_PATH_LORA, lora["name"])
                 if os.path.exists(path):
                     print(f"The directory '{path}' exists.")
                 else:
                     print(f"The directory '{path}' does not exist. Download it...")
-                    download_files(url, name, BASE_CACHE_PATH_LORA)
+                    download_file(lora["download_url"], lora["name"], BASE_CACHE_PATH_LORA)
                 self.pipe.load_lora_weights(".", weight_name=path)
 
-        if os.environ["TEXTUAL_INVERSION_NAMES"] != "":
-            names = os.environ["TEXTUAL_INVERSION_NAMES"].split(",")
-            urls = os.environ["TEXTUAL_INVERSION_DOWNLOAD_URLS"].split(",")
-            for name, url in zip(names, urls):
-                path = os.path.join(BASE_CACHE_PATH_TEXTUAL_INVERSION, name)
+        textual_inversions = config.get("textual_inversions")
+        if textual_inversions is not None:
+            for textual_inversion in textual_inversions:
+                path = os.path.join(BASE_CACHE_PATH_TEXTUAL_INVERSION, textual_inversion["name"])
                 if os.path.exists(path):
                     print(f"The directory '{path}' exists.")
                 else:
                     print(f"The directory '{path}' does not exist. Download it...")
-                    download_files(url, name, BASE_CACHE_PATH_TEXTUAL_INVERSION)
+                    download_file(
+                        textual_inversion["download_url"],
+                        textual_inversion["name"],
+                        BASE_CACHE_PATH_TEXTUAL_INVERSION,
+                    )
                 self.pipe.load_textual_inversion(path)
 
         self.pipe.enable_xformers_memory_efficient_attention()
+
+        # TODO: Add support for controlnets.
+        # controlnet = diffusers.ControlNetModel.from_pretrained(
+        #     "lllyasviel/control_v11f1e_sd15_tile",
+        #     # "lllyasviel/sd-controlnet-canny",
+        #     # self.cache_path,
+        #     # subfolder="controlnet",
+        #     torch_dtype=torch.float16,
+        # )
+
+        # self.controlnet_pipe = diffusers.StableDiffusionControlNetPipeline.from_pretrained(
+        #     self.cache_path,
+        #     controlnet=controlnet,
+        #     custom_pipeline="lpw_stable_diffusion",
+        #     # custom_pipeline="stable_diffusion_controlnet_img2img",
+        #     scheduler=self.pipe.scheduler,
+        #     vae=self.pipe.vae,
+        #     torch_dtype=torch.float16,
+        # )
+
+        # self.controlnet_pipe.to("cuda")
+
+        # self.controlnet_pipe.enable_xformers_memory_efficient_attention()
 
     @method()
     def count_token(self, p: str, n: str) -> int:
@@ -214,6 +280,22 @@ class StableDiffusion(ClsMixin):
                     generator=generator,
                 ).images
 
+        # for image in base_images:
+        #     image = self.resize_image(image=image, scale_factor=2)
+        #     with torch.inference_mode():
+        #         with torch.autocast("cuda"):
+        #             generatedWithControlnet = self.controlnet_pipe(
+        #                 prompt=prompt * batch_size,
+        #                 negative_prompt=n_prompt * batch_size,
+        #                 num_inference_steps=steps,
+        #                 strength=0.3,
+        #                 guidance_scale=7.5,
+        #                 max_embeddings_multiples=max_embeddings_multiples,
+        #                 generator=generator,
+        #                 image=image,
+        #             ).images
+        # base_images.extend(generatedWithControlnet)
+
         if upscaler != "":
             upscaled = self.upscale(
                 base_images=base_images,
@@ -224,8 +306,8 @@ class StableDiffusion(ClsMixin):
                 use_hires_fix=use_hires_fix,
             )
             base_images.extend(upscaled)
+
             if use_hires_fix:
-                torch.cuda.empty_cache()
                 for img in upscaled:
                     with torch.inference_mode():
                         with torch.autocast("cuda"):
@@ -240,7 +322,6 @@ class StableDiffusion(ClsMixin):
                                 image=img,
                             ).images
                     base_images.extend(hires_fixed)
-                torch.cuda.empty_cache()
 
         image_output = []
         for image in base_images:
@@ -249,6 +330,15 @@ class StableDiffusion(ClsMixin):
                 image_output.append(buf.getvalue())
 
         return image_output
+
+    @method()
+    def resize_image(self, image: Image.Image, scale_factor: int) -> Image.Image:
+        from PIL import Image
+
+        image = image.convert("RGB")
+        width, height = image.size
+        img = image.resize((width * scale_factor, height * scale_factor), resample=Image.LANCZOS)
+        return img
 
     @method()
     def upscale(
@@ -263,7 +353,7 @@ class StableDiffusion(ClsMixin):
         use_hires_fix: bool = False,
     ) -> list[Image.Image]:
         """
-        Upscales the given images using the given model.
+        Upscales the given images using a upscaler.
         https://github.com/xinntao/Real-ESRGAN
         """
         import numpy
@@ -312,7 +402,6 @@ class StableDiffusion(ClsMixin):
                 bg_upsampler=upsampler,
             )
 
-        torch.cuda.empty_cache()
         upscaled_imgs = []
         with tqdm(total=len(base_images)) as progress_bar:
             for img in base_images:
@@ -329,7 +418,5 @@ class StableDiffusion(ClsMixin):
 
                 upscaled_imgs.append(Image.fromarray(enhance_result))
                 progress_bar.update(1)
-
-        torch.cuda.empty_cache()
 
         return upscaled_imgs
