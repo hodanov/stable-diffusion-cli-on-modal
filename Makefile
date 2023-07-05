@@ -17,4 +17,4 @@ run:
 	--steps 50 \
 	--upscaler "" \
 	--use-face-enhancer "False" \
-	--use-hires-fix "False"
+	--fix-by-controlnet-tile "False"

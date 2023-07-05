@@ -29,10 +29,6 @@ vae:
 #     download_url: https://hogehoge/xxxx
 #   - name: fugafuga
 #     download_url: https://fugafuga/xxxx
-# cotrolnets:
+# controlnets:
 #   - name: control_v11f1e_sd15_tile
 #     repo_id: lllyasviel/control_v11f1e_sd15_tile
-# upscaler:
-#   name: RealESRGAN_x2plus
-#   use_face_enhancer: false
-#   use_hires_fix: false
