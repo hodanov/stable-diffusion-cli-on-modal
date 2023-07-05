@@ -18,7 +18,7 @@ def main(
     seed: int = -1,
     upscaler: str = "",
     use_face_enhancer: str = "False",
-    use_hires_fix: str = "False",
+    fix_by_controlnet_tile: str = "False",
 ):
     """
     This function is the entrypoint for the Runway CLI.
@@ -43,7 +43,7 @@ def main(
             seed=seed_generated,
             upscaler=upscaler,
             use_face_enhancer=use_face_enhancer == "True",
-            use_hires_fix=use_hires_fix == "True",
+            fix_by_controlnet_tile=fix_by_controlnet_tile == "True",
         )
         util.save_images(directory, images, seed_generated, i)
         total_time = time.time() - start_time
