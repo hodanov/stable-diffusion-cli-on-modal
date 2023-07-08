@@ -1,5 +1,5 @@
 deploy:
-	modal deploy ./setup_files/setup.py
+	cd ./setup_files && modal deploy main.py
 
 # `--upscaler` is a name of upscaler you want to use.
 # You can use upscalers the below:
