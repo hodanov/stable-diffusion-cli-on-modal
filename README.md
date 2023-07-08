@@ -53,6 +53,7 @@ Images are generated and output to the `outputs/` directory.
     ├── Dockerfile          # To build a base image.
     ├── config.yml          # To set a model, vae and some tools.
     ├── requirements.txt
+    ├── main.py             # A main script to run inference.
     └── setup.py            # Build an application to deploy on Modal.
 ```
 
