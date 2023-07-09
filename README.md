@@ -45,16 +45,16 @@ Images are generated and output to the `outputs/` directory.
 ├── Makefile
 ├── README.md
 ├── sdcli/                  # A directory with scripts to run inference.
-│   ├── __init__.py
 │   ├── outputs/            # Images are outputted this directory.
 │   ├── txt2img.py          # A script to run txt2img inference.
 │   └── util.py
 └── setup_files/            # A directory with config files.
+    ├── __main__.py         # A main script to run inference.
     ├── Dockerfile          # To build a base image.
     ├── config.yml          # To set a model, vae and some tools.
     ├── requirements.txt
-    ├── main.py             # A main script to run inference.
-    └── setup.py            # Build an application to deploy on Modal.
+    ├── setup.py            # Build an application to deploy on Modal.
+    └── txt2img.py          # There is a class to run inference.
 ```
 
 Thank you.
