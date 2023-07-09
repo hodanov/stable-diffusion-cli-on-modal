@@ -1,6 +1,7 @@
 import time
 
 import modal
+import util
 
 stub = modal.Stub("run-stable-diffusion-cli")
 stub.run_inference = modal.Function.from_name("stable-diffusion-cli", "StableDiffusion.run_inference")
@@ -25,8 +26,6 @@ def main(
     The function pass the given prompt to StableDiffusion on Modal,
     gets back a list of images and outputs images to local.
     """
-    import util
-
     directory = util.make_directory()
     seed_generated = seed
     for i in range(samples):
