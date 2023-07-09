@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from setup import stub
-from txt2img import StableDiffusion, StableDiffusionInterface
+from txt2img import StableDiffusion
 
 
 def new_stable_diffusion() -> StableDiffusion:
