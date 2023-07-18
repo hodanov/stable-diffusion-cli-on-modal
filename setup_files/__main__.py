@@ -1,11 +1,7 @@
 from __future__ import annotations
 
 from setup import stub
-from txt2img import StableDiffusion
-
-
-def new_stable_diffusion() -> StableDiffusion:
-    return StableDiffusion()
+from txt2img import StableDiffusion, new_stable_diffusion
 
 
 @stub.function(gpu="A10G")
