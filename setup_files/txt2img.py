@@ -14,6 +14,10 @@ from setup import (BASE_CACHE_PATH, BASE_CACHE_PATH_CONTROLNET,
                    stub)
 
 
+def new_stable_diffusion() -> StableDiffusionInterface:
+    return StableDiffusion()
+
+
 class StableDiffusionInterface(metaclass=abc.ABCMeta):
     """
     A StableDiffusionInterface is an interface that will be used for StableDiffusion class creation.
