@@ -1,5 +1,5 @@
 deploy:
-	cd ./setup_files && modal deploy main.py
+	cd ./setup_files && modal deploy __main__.py
 
 # `--upscaler` is a name of upscaler you want to use.
 # You can use upscalers the below:
@@ -14,7 +14,7 @@ run:
 	--height 512 \
 	--width 512 \
 	--samples 1 \
-	--steps 50 \
+	--steps 30 \
 	--upscaler "" \
 	--use-face-enhancer "False" \
 	--fix-by-controlnet-tile "False"
