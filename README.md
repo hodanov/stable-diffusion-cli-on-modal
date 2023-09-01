@@ -1,3 +1,5 @@
+[日本語版 README はこちら](README_ja.md)
+
 # Stable Diffusion Modal
 
 This is the script to execute Stable Diffusion on [Modal](https://modal.com/).
