@@ -70,7 +70,7 @@ class StableDiffusion(StableDiffusionInterface):
         else:
             print(f"The directory '{self.cache_path}' does not exist.")
 
-        torch.cuda.memory._set_allocator_settings("max_split_size_mb:256")
+        # torch.cuda.memory._set_allocator_settings("max_split_size_mb:256")
 
         self.pipe = diffusers.StableDiffusionPipeline.from_pretrained(
             self.cache_path,
@@ -180,7 +180,7 @@ class StableDiffusion(StableDiffusionInterface):
         generator = torch.Generator("cuda").manual_seed(seed)
         with torch.inference_mode():
             with torch.autocast("cuda"):
-                generated_images = self.pipe.text2img(
+                generated_images = self.pipe(
                     prompt * batch_size,
                     negative_prompt=n_prompt * batch_size,
                     height=height,
