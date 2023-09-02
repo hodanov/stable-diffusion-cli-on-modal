@@ -69,8 +69,90 @@ Images are generated and output to the `outputs/` directory.
     └── txt2img.py          # There is a class to run inference.
 ```
 
+## How to use
+
+### 1. `git clone` the repository
+
+```
+git clone https://github.com/hodanov/stable-diffusion-modal.git
+cd stable-diffusion-modal
+```
+
+### 2. Add hugging_face_token to .env file
+
+Hugging Add hugging_face_token to .env file.
+
+This script downloads and uses a model from HuggingFace, but if you want to use a model in a private repository, you will need to set this environment variable.
+
+```
+HUGGING_FACE_TOKEN="Write your hugging face token here."
+```
+
+### 3. Add the model to ./setup_files/config.yml
+
+Add the model used for inference. VAE, LoRA, and Textual Inversion are also configurable.
+
+```
+# ex)
+model:
+  name: stable-diffusion-2-1
+  repo_id: stabilityai/stable-diffusion-2-1
+vae:
+  name: sd-vae-ft-mse
+  repo_id: stabilityai/sd-vae-ft-mse
+controlnets:
+  - name: control_v11f1e_sd15_tile
+    repo_id: lllyasviel/control_v11f1e_sd15_tile
+```
+
+Use a model configured for Diffusers, such as the one found in [this repository](https://huggingface.co/stabilityai/stable-diffusion-2-1).
+
+Files in safetensor format shared by Civitai etc. need to be converted (you can do so with a script in the diffusers official repository).
+
+[https://github.com/huggingface/diffusers/blob/main/scripts/convert_original_stable_diffusion_to_diffusers.py](https://github.com/huggingface/diffusers/blob/main/scripts/convert_original_stable_diffusion_to_diffusers.py)
+
+```
+# Example of using conversion script
+python ./diffusers/scripts/convert_original_stable_diffusion_to_diffusers.py --from_safetensors \
+--checkpoint_path="Write the filename of safetensor format here" \
+--dump_path="Write the output path here" \
+--device='cuda:0'
+```
+
+### 4. Setting prompts
+
+Set the prompt to Makefile.
+
+```
+# ex)
+run:
+ cd ./sdcli && modal run txt2img.py \
+ --prompt "hogehoge" \
+ --n-prompt "mogumogu" \
+ --height 768 \
+ --width 512 \
+ --samples 1 \
+ --steps 30 \
+ --seed 12321 |
+ --upscaler "RealESRGAN_x2plus" \
+ --use-face-enhancer "False" \
+ --fix-by-controlnet-tile "True"
+```
+
+### 5. make deploy
+
+Execute the below command. An application will be deployed on Modal.
+
+```
+make deploy
+```
+
+### 6. make run
+
+The txt2img inference is executed with the following command.
+
+```
+make run
+```
+
 Thank you.
-
-## Author
-
-[Hoda](https://hodalog.com)
