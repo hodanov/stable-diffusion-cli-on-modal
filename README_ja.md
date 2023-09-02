@@ -151,7 +151,7 @@ run:
 
 ### 5. make deployの実行
 
-下記のコマンでModal上にアプリケーションが構築されます。
+下記のコマンドでModal上にアプリケーションが構築されます。
 
 ```
 make deploy
@@ -164,7 +164,3 @@ make deploy
 ```
 make run
 ```
-
-## Author
-
-[Hoda](https://hodalog.com)
