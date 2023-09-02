@@ -12,9 +12,9 @@ run:
 	--prompt "a photograph of an astronaut riding a horse" \
 	--n-prompt "" \
 	--height 512 \
-	--width 512 \
+	--width 768 \
 	--samples 1 \
 	--steps 30 \
-	--upscaler "" \
+	--upscaler "RealESRGAN_x2plus" \
 	--use-face-enhancer "False" \
-	--fix-by-controlnet-tile "False"
+	--fix-by-controlnet-tile "True"
