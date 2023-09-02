@@ -1,6 +1,6 @@
 # Stable Diffusion Modal
 
-[Modal](https://modal.com/)上でStable Diffusionを動かすためのスクリプトです。txt2imgの推論を実行することができます。ControlNet TileとUpscalerを利用した高解像度化に対応しており、モデルの取り替えも自由に行えます（再ビルドは必要ですが、マルチステージビルド的なコードを実装して効率よく取り替えできるようにしています）。
+[Modal](https://modal.com/)上でStable Diffusionを動かすためのDiffusersベースのスクリプトです。txt2imgの推論を実行することができ、ControlNet TileとUpscalerを利用した高解像度化の機能を備えています。
 
 ## このスクリプトでできること
 
@@ -8,17 +8,13 @@
 
 ![](assets/20230902_tile_imgs.png)
 
-2. アップスケーラーとControlNet Tileを利用した高解像度な画像生成ができます。
+2. アップスケーラーとControlNet Tileを利用した高解像度な画像を生成することができます。
 
-Stable Diffusion 1.5、または2系では、生成画像のサイズは標準で512x512~1024程度までで、それ以上の解像度の画像を作ろうとすると、人物や背景が崩れてしまいます。
+| ベース画像 | アップスケール後 |
+| ---- | ---- |
+| <img src="assets/20230708204347_1172778945_0_0.png" width="300"> | <img src="assets/20230708204347_1172778945_0_2.png" width="300"> |
 
-アップスケーラーとControlNet Tileを組み合わせることで、3072x2048pxまでの高解像度画像を生成することができます。
-
-ベース画像
-![](assets/20230708204347_1172778945_0_0.png)
-
-アップスケール後
-![](assets/20230708204347_1172778945_0_2.png)
+3. その他、LoRAとTextual inversionを利用できます。
 
 ## 必須項目
 
@@ -48,11 +44,10 @@ modal token new
 下記の手順で画像が生成され、outputs ディレクトリに出力されます。
 
 1. リポジトリをgit clone
-2. .envファイルを作成し、.env.example を参考に huggingface の API トークンとモデルを設定
-3. ./setup_files/config.example.yml を ./setup_files/config.ymlにコピー
-4. Makefile を開いてプロンプトを設定
-5. make deployをコマンドラインで実行(Modal上にアプリケーションが構築されます)
-6. make run(スクリプトが起動します)
+2. ./setup_files/config.example.yml を ./setup_files/config.ymlにコピー
+3. Makefile を開いてプロンプトを設定
+4. make deployをコマンドラインで実行(Modal上にアプリケーションが構築されます)
+5. make run(スクリプトが起動します)
 
 ## ディレクトリ構成
 
@@ -95,26 +90,16 @@ HUGGING_FACE_TOKEN="ここにHuggingFaceのトークンを記載する"
 
 ### 3. ./setup_files/config.ymlを設定する
 
-推論に使うモデルを設定します。VAE、Controlnet、LoRA、Textual Inversionも設定可能です。
+推論に使うモデルを設定します。VAE、LoRA、Textual Inversionも設定可能です。
 
 ```
 # 設定例
 model:
-  name: stable-diffusion-2-1
-  repo_id: stabilityai/stable-diffusion-2-1
+  name: stable-diffusion-2-1 # モデル名を指定
+  repo_id: stabilityai/stable-diffusion-2-1 # リポジトリのID（「プロファイル名/モデル名」の形で指定）
 vae:
   name: sd-vae-ft-mse
   repo_id: stabilityai/sd-vae-ft-mse
-loras:
-  - name: hogehoge.safetensors
-    download_url: https://hogehoge/xxxx
-  - name: fugafuga.safetensors
-    download_url: https://fugafuga/xxxx
-textual_inversions:
-  - name: hogehoge
-    download_url: https://hogehoge/xxxx
-  - name: fugafuga
-    download_url: https://fugafuga/xxxx
 controlnets:
   - name: control_v11f1e_sd15_tile
     repo_id: lllyasviel/control_v11f1e_sd15_tile
@@ -146,8 +131,9 @@ run:
  --n-prompt "mogumogu" \
  --height 768 \
  --width 512 \
- --samples 20 \
+ --samples 1 \
  --steps 30 \
+ --seed 12321 |
  --upscaler "RealESRGAN_x2plus" \
  --use-face-enhancer "False" \
  --fix-by-controlnet-tile "True"
@@ -159,6 +145,7 @@ run:
 - width: 画像の幅を指定します。
 - samples: 生成する画像の数を指定します。
 - steps: ステップ数を指定します。
+- seed: seedを指定します。
 - upscaler: 画像の解像度を上げるためのアップスケーラーを指定します。
 - fix-by-controlnet-tile: ControlNet 1.1 Tileの利用有無を指定します。有効にすると、崩れた画像を修復しつつ、高解像度な画像を生成します。
 

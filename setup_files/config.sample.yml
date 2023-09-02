@@ -29,6 +29,6 @@ vae:
 #     download_url: https://hogehoge/xxxx
 #   - name: fugafuga
 #     download_url: https://fugafuga/xxxx
-# controlnets:
-#   - name: control_v11f1e_sd15_tile
-#     repo_id: lllyasviel/control_v11f1e_sd15_tile
+controlnets:
+  - name: control_v11f1e_sd15_tile
+    repo_id: lllyasviel/control_v11f1e_sd15_tile
