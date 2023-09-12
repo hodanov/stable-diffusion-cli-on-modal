@@ -7,7 +7,7 @@ from txt2img import StableDiffusion, new_stable_diffusion
 @stub.function(gpu="A10G")
 def main():
     sd = new_stable_diffusion()
-    print(isinstance(sd, StableDiffusion))
+    print(f"Deploy '{sd.__class__.__name__}'.")
 
 
 if __name__ == "__main__":
