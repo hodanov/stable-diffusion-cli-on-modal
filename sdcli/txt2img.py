@@ -32,7 +32,7 @@ def main(
         if seed == -1:
             seed_generated = util.generate_seed()
         start_time = time.time()
-        images = stub.app.run_inference.call(
+        images = stub.app.run_inference.remote(
             prompt=prompt,
             n_prompt=n_prompt,
             height=height,
