@@ -10,8 +10,8 @@
 
 2. アップスケーラーとControlNet Tileを利用した高解像度な画像を生成することができます。
 
-| ベース画像 | アップスケール後 |
-| ---- | ---- |
+| ベース画像                                                       | アップスケール後                                                 |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------- |
 | <img src="assets/20230708204347_1172778945_0_0.png" width="300"> | <img src="assets/20230708204347_1172778945_0_2.png" width="300"> |
 
 3. その他、LoRAとTextual inversionを利用できます。
@@ -105,11 +105,18 @@ controlnets:
     repo_id: lllyasviel/control_v11f1e_sd15_tile
 ```
 
-ModelとVAEは[こちらのリポジトリ](https://huggingface.co/stabilityai/stable-diffusion-2-1)にあるような、Diffusersのために構成されたモデルを利用します。
-
-Civitaiなどで共有されているsafetensors形式のファイルは変換が必要です（diffusersの公式リポジトリにあるスクリプトで変換できます）。
+ModelとVAEは[こちらのリポジトリ](https://huggingface.co/stabilityai/stable-diffusion-2-1)にあるような、Diffusersのために構成されたモデルを利用します。Civitaiなどで共有されているsafetensors形式のファイルは変換が必要です（diffusersの公式リポジトリにあるスクリプトで変換できます）。
 
 [変換スクリプト](https://github.com/huggingface/diffusers/blob/main/scripts/convert_original_stable_diffusion_to_diffusers.py)
+
+LoRAとTextual Inversionは変換不要で、safetensorsファイルをそのまま利用できます。
+
+```
+# 設定例
+loras:
+  - name: mecha.safetensors # ファイル名を指定。任意の名前で良いが、拡張子`.safetensors`は必須。
+    download_url: https://civitai.com/api/download/models/150907?type=Model&format=SafeTensor # ダウンロードリンクを指定
+```
 
 ```
 # 変換スクリプトの使用例
