@@ -7,12 +7,12 @@ This is a Diffusers-based script for running Stable Diffusion on [Modal](https:/
 ## Features
 
 1. Image generation using txt2img
-![](assets/20230902_tile_imgs.png)
+   ![](assets/20230902_tile_imgs.png)
 
 2. Upscaling
 
-| Before upscaling | After upscaling |
-| ---- | ---- |
+| Before upscaling                                                 | After upscaling                                                  |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------- |
 | <img src="assets/20230708204347_1172778945_0_0.png" width="300"> | <img src="assets/20230708204347_1172778945_0_2.png" width="300"> |
 
 ## Requirements
@@ -105,9 +105,7 @@ controlnets:
     repo_id: lllyasviel/control_v11f1e_sd15_tile
 ```
 
-Use a model configured for Diffusers, such as the one found in [this repository](https://huggingface.co/stabilityai/stable-diffusion-2-1).
-
-Files in safetensor format shared by Civitai etc. need to be converted (you can do so with a script in the diffusers official repository).
+Use a model configured for Diffusers, such as the one found in [this repository](https://huggingface.co/stabilityai/stable-diffusion-2-1). Files in safetensor format shared by Civitai etc. need to be converted (you can do so with a script in the diffusers official repository).
 
 [https://github.com/huggingface/diffusers/blob/main/scripts/convert_original_stable_diffusion_to_diffusers.py](https://github.com/huggingface/diffusers/blob/main/scripts/convert_original_stable_diffusion_to_diffusers.py)
 
@@ -117,6 +115,15 @@ python ./diffusers/scripts/convert_original_stable_diffusion_to_diffusers.py --f
 --checkpoint_path="Write the filename of safetensor format here" \
 --dump_path="Write the output path here" \
 --device='cuda:0'
+```
+
+LoRA and Textual Inversion don't require any conversion and can directly use safetensors files. Add the download link to config.yml as below.
+
+```
+# Example
+loras:
+  - name: lora_name.safetensors # Specify the LoRA file name. Any name is fine, but the extension `.safetensors` is required.
+    download_url: download_link_here # Specify the download link for the safetensor file.
 ```
 
 ### 4. Setting prompts
