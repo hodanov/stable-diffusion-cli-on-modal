@@ -5,15 +5,15 @@
 
 version: 2
 updates:
-  - package-ecosystem: "pip" # See documentation for possible values
-    directory: "./setup_files" # Location of package manifests
+  - package-ecosystem: 'pip' # See documentation for possible values
+    directory: './setup_files' # Location of package manifests
     schedule:
-      interval: "weekly"
-  - package-ecosystem: "Docker"
-    directory: "./setup_files"
+      interval: 'weekly'
+  - package-ecosystem: 'docker'
+    directory: './setup_files'
     schedule:
-      interval: "weekly"
-  - package-ecosystem: "github-actions"
-   directory: "/"
-   schedule:
-     interval: "monthly"
+      interval: 'weekly'
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'monthly'
