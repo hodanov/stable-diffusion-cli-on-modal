@@ -1,7 +1,7 @@
 invisible_watermark
 accelerate
 diffusers[torch]==0.20.1
-onnxruntime==1.15.1
+onnxruntime==1.16.1
 safetensors==0.3.3
 torch==2.0.1+cu117
 transformers==4.32.0
