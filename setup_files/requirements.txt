@@ -1,6 +1,6 @@
 invisible_watermark
 accelerate
-diffusers[torch]==0.20.1
+diffusers[torch]==0.21.4
 onnxruntime==1.15.1
 safetensors==0.3.3
 torch==2.0.1+cu117
