@@ -3,9 +3,7 @@ name: Docker image CI
 on:
   push:
     branches:
-      - 'main'
-      - 'feature/*'
-      - 'dependabot/*'
+      - '*'
 
 jobs:
   build:
