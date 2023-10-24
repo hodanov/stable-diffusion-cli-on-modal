@@ -5,7 +5,7 @@ onnxruntime==1.16.1
 safetensors==0.4.0
 torch==2.0.1+cu117
 transformers==4.34.1
-xformers==0.0.22
+xformers==0.0.22.post4
 
 realesrgan==0.3.0
 basicsr>=1.4.2
