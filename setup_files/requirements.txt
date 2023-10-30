@@ -3,7 +3,7 @@ accelerate
 diffusers[torch]==0.21.4
 onnxruntime==1.16.1
 safetensors==0.4.0
-torch==2.0.1+cu117
+torch==2.1.0
 transformers==4.34.1
 xformers==0.0.22
 
