@@ -1,7 +1,7 @@
 FROM python:3.11.3-slim-bullseye
 COPY ./requirements.txt /
 RUN apt-get update \
-    && apt-get libgl1-mesa-glx libglib2.0-0 --no-install-recommends -y \
+    && apt-get install libgl1-mesa-glx=latest libglib2.0-0=latest --no-install-recommends -y \
     && apt-get autoremove -y \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/* \
