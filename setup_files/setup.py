@@ -38,26 +38,26 @@ def download_controlnet(name: str, repo_id: str, token: str):
     controlnet.save_pretrained(cache_path, safe_serialization=True)
 
 
-def download_vae(name: str, repo_id: str, token: str):
+def download_vae(name: str, model_url: str, token: str):
     """
     Download a vae.
     """
     cache_path = os.path.join(BASE_CACHE_PATH, name)
-    vae = diffusers.AutoencoderKL.from_pretrained(
-        repo_id,
+    vae = diffusers.AutoencoderKL.from_single_file(
+        pretrained_model_link_or_path=model_url,
         use_auth_token=token,
         cache_dir=cache_path,
     )
     vae.save_pretrained(cache_path, safe_serialization=True)
 
 
-def download_model(name: str, repo_id: str, token: str):
+def download_model(name: str, model_url: str, token: str):
     """
     Download a model.
     """
     cache_path = os.path.join(BASE_CACHE_PATH, name)
-    pipe = diffusers.StableDiffusionPipeline.from_pretrained(
-        repo_id,
+    pipe = diffusers.StableDiffusionPipeline.from_single_file(
+        pretrained_model_link_or_path=model_url,
         use_auth_token=token,
         cache_dir=cache_path,
     )
@@ -77,11 +77,11 @@ def build_image():
 
     model = config.get("model")
     if model is not None:
-        download_model(name=model["name"], repo_id=model["repo_id"], token=token)
+        download_model(name=model["name"], model_url=model["url"], token=token)
 
     vae = config.get("vae")
     if vae is not None:
-        download_vae(name=model["name"], repo_id=vae["repo_id"], token=token)
+        download_vae(name=model["name"], model_url=vae["url"], token=token)
 
     controlnets = config.get("controlnets")
     if controlnets is not None:
@@ -92,7 +92,7 @@ def build_image():
     if loras is not None:
         for lora in loras:
             download_file(
-                url=lora["download_url"],
+                url=lora["url"],
                 file_name=lora["name"],
                 file_path=BASE_CACHE_PATH_LORA,
             )
@@ -101,7 +101,7 @@ def build_image():
     if textual_inversions is not None:
         for textual_inversion in textual_inversions:
             download_file(
-                url=textual_inversion["download_url"],
+                url=textual_inversion["url"],
                 file_name=textual_inversion["name"],
                 file_path=BASE_CACHE_PATH_TEXTUAL_INVERSION,
             )

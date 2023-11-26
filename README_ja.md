@@ -1,12 +1,12 @@
-# Stable Diffusion Modal
+# Stable Diffusion CLI on Modal
 
-[Modal](https://modal.com/)上でStable Diffusionを動かすためのDiffusersベースのスクリプトです。txt2imgの推論を実行することができ、ControlNet TileとUpscalerを利用した高解像度化の機能を備えています。
+[Modal](https://modal.com/)上でStable Diffusionを動かすためのDiffusersベースのスクリプトです。WebUIは無く、CLIでのみ動作します。txt2imgの推論を実行することができ、ControlNet TileとUpscalerを利用した高解像度化の機能を備えています。
 
 ## このスクリプトでできること
 
 1. txt2imgによる画像生成ができます。
 
-![](assets/20230902_tile_imgs.png)
+![txt2imgでの生成画像例](assets/20230902_tile_imgs.png)
 
 2. アップスケーラーとControlNet Tileを利用した高解像度な画像を生成することができます。
 
@@ -27,13 +27,13 @@
 
 `modal-client`はModalをCLIから操作するためのPythonライブラリです。下記のようにインストールします:
 
-```
+```bash
 pip install modal-client
 ```
 
 And you need a modal token to use this script:
 
-```
+```bash
 modal token new
 ```
 
@@ -51,7 +51,7 @@ modal token new
 
 ## ディレクトリ構成
 
-```
+```txt
 .
 ├── .env                    # Secrets manager
 ├── Makefile
@@ -73,7 +73,7 @@ modal token new
 
 ### 1. リポジトリをgit cloneする
 
-```
+```bash
 git clone https://github.com/hodanov/stable-diffusion-modal.git
 cd stable-diffusion-modal
 ```
@@ -84,53 +84,43 @@ Hugging FaceのトークンをHUGGING_FACE_TOKENに記入します。
 
 このスクリプトはHuggingFaceからモデルをダウンロードして使用しますが、プライベートリポジトリにあるモデルを参照する場合、この環境変数の設定が必要です。
 
-```
+```txt
 HUGGING_FACE_TOKEN="ここにHuggingFaceのトークンを記載する"
 ```
 
 ### 3. ./setup_files/config.ymlを設定する
 
-推論に使うモデルを設定します。VAE、LoRA、Textual Inversionも設定可能です。
+推論に使うモデルを設定します。Safetensorsファイルをそのまま利用します。VAE、LoRA、Textual Inversionも設定可能です。
 
-```
+下記のように、nameにモデル名、urlにSafetensorsファイルがあるURLを指定します。
+
+```yml
 # 設定例
 model:
-  name: stable-diffusion-2-1 # モデル名を指定
-  repo_id: stabilityai/stable-diffusion-2-1 # リポジトリのID（「プロファイル名/モデル名」の形で指定）
+  name: stable-diffusion-1-5
+  url: https://huggingface.co/runwayml/stable-diffusion-v1-5/blob/main/v1-5-pruned.safetensors # Specify URL for the safetensor file.
 vae:
   name: sd-vae-ft-mse
-  repo_id: stabilityai/sd-vae-ft-mse
+  url: https://huggingface.co/stabilityai/sd-vae-ft-mse-original/blob/main/vae-ft-mse-840000-ema-pruned.safetensors
 controlnets:
   - name: control_v11f1e_sd15_tile
     repo_id: lllyasviel/control_v11f1e_sd15_tile
 ```
 
-ModelとVAEは[こちらのリポジトリ](https://huggingface.co/stabilityai/stable-diffusion-2-1)にあるような、Diffusersのために構成されたモデルを利用します。Civitaiなどで共有されているsafetensors形式のファイルは変換が必要です（diffusersの公式リポジトリにあるスクリプトで変換できます）。
+LoRAは下記のように指定します。
 
-[変換スクリプト](https://github.com/huggingface/diffusers/blob/main/scripts/convert_original_stable_diffusion_to_diffusers.py)
-
-LoRAとTextual Inversionは変換不要で、safetensorsファイルをそのまま利用できます。
-
-```
+```yml
 # 設定例
 loras:
   - name: mecha.safetensors # ファイル名を指定。任意の名前で良いが、拡張子`.safetensors`は必須。
-    download_url: https://civitai.com/api/download/models/150907?type=Model&format=SafeTensor # ダウンロードリンクを指定
-```
-
-```
-# 変換スクリプトの使用例
-python ./diffusers/scripts/convert_original_stable_diffusion_to_diffusers.py --from_safetensors \
---checkpoint_path="ここに変換したいsafetensors形式のファイルを指定" \
---dump_path="出力先を指定" \
---device='cuda:0'
+    url: https://civitai.com/api/download/models/150907?type=Model&format=SafeTensor # ダウンロードリンクを指定
 ```
 
 ### 4. Makefileの設定（プロンプトの設定）
 
 プロンプトをMakefileに設定します。
 
-```
+```makefile
 # 設定例
 run:
  cd ./sdcli && modal run txt2img.py \
@@ -160,7 +150,7 @@ run:
 
 下記のコマンドでModal上にアプリケーションが構築されます。
 
-```
+```bash
 make deploy
 ```
 
@@ -168,6 +158,6 @@ make deploy
 
 下記のコマンドでtxt2img推論が実行されます。
 
-```
+```bash
 make run
 ```

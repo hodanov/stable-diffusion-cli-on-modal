@@ -7,28 +7,28 @@
 ##########
 # You can use a diffusers model and VAE on hugging face.
 model:
-  name: stable-diffusion-2-1
-  repo_id: stabilityai/stable-diffusion-2-1
+  name: stable-diffusion-1-5
+  url: https://huggingface.co/runwayml/stable-diffusion-v1-5/blob/main/v1-5-pruned.safetensors
 vae:
   name: sd-vae-ft-mse
-  repo_id: stabilityai/sd-vae-ft-mse
+  url: https://huggingface.co/stabilityai/sd-vae-ft-mse-original/blob/main/vae-ft-mse-840000-ema-pruned.safetensors
 ##########
 # Add LoRA if you want to use one. You can use a download url such as the below.
 # ex)
 # loras:
 #   - name: hogehoge.safetensors
-#     download_url: https://hogehoge/xxxx
+#     url: https://hogehoge/xxxx
 #   - name: fugafuga.safetensors
-#     download_url: https://fugafuga/xxxx
+#     url: https://fugafuga/xxxx
 
 ##########
 # You can use Textual Inversion and ControlNet also. Usage is the same as `loras`.
 # ex)
 # textual_inversions:
 #   - name: hogehoge
-#     download_url: https://hogehoge/xxxx
+#     url: https://hogehoge/xxxx
 #   - name: fugafuga
-#     download_url: https://fugafuga/xxxx
+#     url: https://fugafuga/xxxx
 controlnets:
   - name: control_v11f1e_sd15_tile
     repo_id: lllyasviel/control_v11f1e_sd15_tile

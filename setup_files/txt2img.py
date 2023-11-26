@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import abc
 import io
 import os
 
@@ -9,51 +8,20 @@ import PIL.Image
 import torch
 from modal import Secret, method
 
-from setup import (BASE_CACHE_PATH, BASE_CACHE_PATH_CONTROLNET,
-                   BASE_CACHE_PATH_LORA, BASE_CACHE_PATH_TEXTUAL_INVERSION,
-                   stub)
-
-
-def new_stable_diffusion() -> StableDiffusionInterface:
-    return StableDiffusion()
-
-
-class StableDiffusionInterface(metaclass=abc.ABCMeta):
-    """
-    A StableDiffusionInterface is an interface that will be used for StableDiffusion class creation.
-    """
-
-    @classmethod
-    def __subclasshook__(cls, subclass):
-        return hasattr(subclass, "run_inference") and callable(subclass.run_inference)
-
-    @abc.abstractmethod
-    @method()
-    def run_inference(
-        self,
-        prompt: str,
-        n_prompt: str,
-        height: int = 512,
-        width: int = 512,
-        samples: int = 1,
-        batch_size: int = 1,
-        steps: int = 30,
-        seed: int = 1,
-        upscaler: str = "",
-        use_face_enhancer: bool = False,
-        fix_by_controlnet_tile: bool = False,
-    ) -> list[bytes]:
-        """
-        Run inference.
-        """
-        raise NotImplementedError
+from setup import (
+    BASE_CACHE_PATH,
+    BASE_CACHE_PATH_CONTROLNET,
+    BASE_CACHE_PATH_LORA,
+    BASE_CACHE_PATH_TEXTUAL_INVERSION,
+    stub,
+)
 
 
 @stub.cls(
     gpu="A10G",
     secrets=[Secret.from_dotenv(__file__)],
 )
-class StableDiffusion(StableDiffusionInterface):
+class StableDiffusion:
     """
     A class that wraps the Stable Diffusion pipeline and scheduler.
     """
@@ -70,12 +38,11 @@ class StableDiffusion(StableDiffusionInterface):
         else:
             print(f"The directory '{self.cache_path}' does not exist.")
 
-        # torch.cuda.memory._set_allocator_settings("max_split_size_mb:256")
-
         self.pipe = diffusers.StableDiffusionPipeline.from_pretrained(
             self.cache_path,
             custom_pipeline="lpw_stable_diffusion",
             torch_dtype=torch.float16,
+            use_safetensors=True,
         )
 
         # TODO: Add support for other schedulers.
@@ -90,8 +57,8 @@ class StableDiffusion(StableDiffusionInterface):
             self.pipe.vae = diffusers.AutoencoderKL.from_pretrained(
                 self.cache_path,
                 subfolder="vae",
+                use_safetensors=True,
             )
-        self.pipe.to("cuda")
 
         loras = config.get("loras")
         if loras is not None:
@@ -113,7 +80,7 @@ class StableDiffusion(StableDiffusionInterface):
                     print(f"The directory '{path}' does not exist. Need to execute 'modal deploy' first.")
                 self.pipe.load_textual_inversion(path)
 
-        self.pipe.enable_xformers_memory_efficient_attention()
+        self.pipe = self.pipe.to("cuda")
 
         # TODO: Repair the controlnet loading.
         controlnets = config.get("controlnets")
@@ -128,9 +95,9 @@ class StableDiffusion(StableDiffusionInterface):
                     scheduler=self.pipe.scheduler,
                     vae=self.pipe.vae,
                     torch_dtype=torch.float16,
+                    use_safetensors=True,
                 )
-                self.controlnet_pipe.to("cuda")
-                self.controlnet_pipe.enable_xformers_memory_efficient_attention()
+            self.controlnet_pipe = self.controlnet_pipe.to("cuda")
 
     def _count_token(self, p: str, n: str) -> int:
         """
@@ -164,7 +131,6 @@ class StableDiffusion(StableDiffusionInterface):
         n_prompt: str,
         height: int = 512,
         width: int = 512,
-        samples: int = 1,
         batch_size: int = 1,
         steps: int = 30,
         seed: int = 1,
@@ -175,21 +141,21 @@ class StableDiffusion(StableDiffusionInterface):
         """
         Runs the Stable Diffusion pipeline on the given prompt and outputs images.
         """
-
         max_embeddings_multiples = self._count_token(p=prompt, n=n_prompt)
         generator = torch.Generator("cuda").manual_seed(seed)
-        with torch.inference_mode():
-            with torch.autocast("cuda"):
-                generated_images = self.pipe(
-                    prompt * batch_size,
-                    negative_prompt=n_prompt * batch_size,
-                    height=height,
-                    width=width,
-                    num_inference_steps=steps,
-                    guidance_scale=7.5,
-                    max_embeddings_multiples=max_embeddings_multiples,
-                    generator=generator,
-                ).images
+        self.pipe.enable_vae_tiling()
+        self.pipe.enable_xformers_memory_efficient_attention()
+        with torch.autocast("cuda"):
+            generated_images = self.pipe(
+                prompt * batch_size,
+                negative_prompt=n_prompt * batch_size,
+                height=height,
+                width=width,
+                num_inference_steps=steps,
+                guidance_scale=7.5,
+                max_embeddings_multiples=max_embeddings_multiples,
+                generator=generator,
+            ).images
 
         base_images = generated_images
 
@@ -198,20 +164,21 @@ class StableDiffusion(StableDiffusionInterface):
         https://huggingface.co/lllyasviel/control_v11f1e_sd15_tile
         """
         if fix_by_controlnet_tile:
+            self.controlnet_pipe.enable_vae_tiling()
+            self.controlnet_pipe.enable_xformers_memory_efficient_attention()
             for image in base_images:
                 image = self._resize_image(image=image, scale_factor=2)
-                with torch.inference_mode():
-                    with torch.autocast("cuda"):
-                        fixed_by_controlnet = self.controlnet_pipe(
-                            prompt=prompt * batch_size,
-                            negative_prompt=n_prompt * batch_size,
-                            num_inference_steps=steps,
-                            strength=0.3,
-                            guidance_scale=7.5,
-                            max_embeddings_multiples=max_embeddings_multiples,
-                            generator=generator,
-                            image=image,
-                        ).images
+                with torch.autocast("cuda"):
+                    fixed_by_controlnet = self.controlnet_pipe(
+                        prompt=prompt * batch_size,
+                        negative_prompt=n_prompt * batch_size,
+                        num_inference_steps=steps,
+                        strength=0.3,
+                        guidance_scale=7.5,
+                        max_embeddings_multiples=max_embeddings_multiples,
+                        generator=generator,
+                        image=image,
+                    ).images
             generated_images.extend(fixed_by_controlnet)
             base_images = fixed_by_controlnet
 
