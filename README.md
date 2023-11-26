@@ -80,7 +80,7 @@ cd stable-diffusion-modal
 
 ### 2. Add hugging_face_token to .env file
 
-Hugging Add hugging_face_token to .env file.
+Add hugging_face_token to .env file.
 
 This script downloads and uses a model from HuggingFace, but if you want to use a model in a private repository, you will need to set this environment variable.
 
