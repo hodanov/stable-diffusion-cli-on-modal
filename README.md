@@ -1,8 +1,8 @@
 [日本語版 README はこちら](README_ja.md)
 
-# Stable Diffusion Modal
+# Stable Diffusion CLI on Modal
 
-This is a Diffusers-based script for running Stable Diffusion on [Modal](https://modal.com/). It can perform txt2img inference and has the ability to increase resolution using ControlNet Tile and Upscaler.
+This is a Diffusers-based script for running Stable Diffusion on [Modal](https://modal.com/). This script has no WebUI and only works with CLI. It can perform txt2img inference and has the ability to increase resolution using ControlNet Tile and Upscaler.
 
 ## Features
 
@@ -25,13 +25,13 @@ The app requires the following to run:
 
 The `modal-client` is the Python library. In order to install that:
 
-```
+```bash
 pip install modal-client
 ```
 
 And you need a modal token to use this script:
 
-```
+```bash
 modal token new
 ```
 
@@ -51,7 +51,7 @@ Images are generated and output to the `outputs/` directory.
 
 ## Directory structure
 
-```
+```txt
 .
 ├── .env                    # Secrets manager
 ├── Makefile
@@ -73,7 +73,7 @@ Images are generated and output to the `outputs/` directory.
 
 ### 1. `git clone` the repository
 
-```
+```bash
 git clone https://github.com/hodanov/stable-diffusion-modal.git
 cd stable-diffusion-modal
 ```
@@ -84,53 +84,41 @@ Hugging Add hugging_face_token to .env file.
 
 This script downloads and uses a model from HuggingFace, but if you want to use a model in a private repository, you will need to set this environment variable.
 
-```
+```txt
 HUGGING_FACE_TOKEN="Write your hugging face token here."
 ```
 
 ### 3. Add the model to ./setup_files/config.yml
 
-Add the model used for inference. VAE, LoRA, and Textual Inversion are also configurable.
+Add the model used for inference. Use the Safetensors file as is. VAE, LoRA, and Textual Inversion are also configurable.
 
-```
+```yml
 # ex)
 model:
-  name: stable-diffusion-2-1
-  repo_id: stabilityai/stable-diffusion-2-1
+  name: stable-diffusion-1-5
+  url: https://huggingface.co/runwayml/stable-diffusion-v1-5/blob/main/v1-5-pruned.safetensors # Specify URL for the safetensor file.
 vae:
   name: sd-vae-ft-mse
-  repo_id: stabilityai/sd-vae-ft-mse
+  url: https://huggingface.co/stabilityai/sd-vae-ft-mse-original/blob/main/vae-ft-mse-840000-ema-pruned.safetensors
 controlnets:
   - name: control_v11f1e_sd15_tile
     repo_id: lllyasviel/control_v11f1e_sd15_tile
 ```
 
-Use a model configured for Diffusers, such as the one found in [this repository](https://huggingface.co/stabilityai/stable-diffusion-2-1). Files in safetensor format shared by Civitai etc. need to be converted (you can do so with a script in the diffusers official repository).
+If you want to use LoRA and Textual Inversion, configure as follows.
 
-[https://github.com/huggingface/diffusers/blob/main/scripts/convert_original_stable_diffusion_to_diffusers.py](https://github.com/huggingface/diffusers/blob/main/scripts/convert_original_stable_diffusion_to_diffusers.py)
-
-```
-# Example of using conversion script
-python ./diffusers/scripts/convert_original_stable_diffusion_to_diffusers.py --from_safetensors \
---checkpoint_path="Write the filename of safetensor format here" \
---dump_path="Write the output path here" \
---device='cuda:0'
-```
-
-LoRA and Textual Inversion don't require any conversion and can directly use safetensors files. Add the download link to config.yml as below.
-
-```
+```yml
 # Example
 loras:
   - name: lora_name.safetensors # Specify the LoRA file name. Any name is fine, but the extension `.safetensors` is required.
-    download_url: download_link_here # Specify the download link for the safetensor file.
+    url: download_link_here # Specify the download link for the safetensor file.
 ```
 
 ### 4. Setting prompts
 
 Set the prompt to Makefile.
 
-```
+```makefile
 # ex)
 run:
  cd ./sdcli && modal run txt2img.py \
@@ -150,7 +138,7 @@ run:
 
 Execute the below command. An application will be deployed on Modal.
 
-```
+```bash
 make deploy
 ```
 
@@ -158,7 +146,7 @@ make deploy
 
 The txt2img inference is executed with the following command.
 
-```
+```bash
 make run
 ```
 
