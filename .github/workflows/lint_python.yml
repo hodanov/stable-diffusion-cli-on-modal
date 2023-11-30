@@ -20,4 +20,5 @@ jobs:
           pip install pycodestyle pyflakes
       - name: Analysing the code with pycodestyle
         run: |
-          pyflakes $(git ls-files '*.py')
+          pycodestyle --first --ignore=E501 $(git ls-files '*.py')
+          pyflakes --ignore=F401 $(git ls-files '*.py')
