@@ -43,13 +43,13 @@ def save_prompts(inputs: dict):
         print(f"Save prompts: {prompts_filename}.txt")
 
 
-def save_images(directory: Path, images: list[bytes], seed: int, i: int):
+def save_images(directory: Path, images: list[bytes], seed: int, i: int, output_format: str = "png"):
     """
     Save images to a file.
     """
     for j, image_bytes in enumerate(images):
         formatted_time = time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
-        output_path = directory / f"{formatted_time}_{seed}_{i}_{j}.png"
+        output_path = directory / f"{formatted_time}_{seed}_{i}_{j}.{output_format}"
         print(f"Saving it to {output_path}")
         with open(output_path, "wb") as file:
             file.write(image_bytes)

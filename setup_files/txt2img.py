@@ -3,9 +3,7 @@ from __future__ import annotations
 import io
 import os
 
-import diffusers
 import PIL.Image
-import torch
 from modal import Secret, method
 from setup import (
     BASE_CACHE_PATH,
@@ -26,6 +24,8 @@ class StableDiffusion:
     """
 
     def __enter__(self):
+        import diffusers
+        import torch
         import yaml
 
         config = {}
@@ -133,13 +133,17 @@ class StableDiffusion:
         upscaler: str = "",
         use_face_enhancer: bool = False,
         fix_by_controlnet_tile: bool = False,
+        output_format: str = "png",
     ) -> list[bytes]:
         """
         Runs the Stable Diffusion pipeline on the given prompt and outputs images.
         """
+        import pillow_avif
+        import torch
+
         max_embeddings_multiples = self._count_token(p=prompt, n=n_prompt)
         generator = torch.Generator("cuda").manual_seed(seed)
-        self.pipe = self.pipe.to("cuda")
+        self.pipe.to("cuda")
         self.pipe.enable_vae_tiling()
         self.pipe.enable_xformers_memory_efficient_attention()
         with torch.autocast("cuda"):
@@ -161,7 +165,7 @@ class StableDiffusion:
         https://huggingface.co/lllyasviel/control_v11f1e_sd15_tile
         """
         if fix_by_controlnet_tile:
-            self.controlnet_pipe = self.controlnet_pipe.to("cuda")
+            self.controlnet_pipe.to("cuda")
             self.controlnet_pipe.enable_vae_tiling()
             self.controlnet_pipe.enable_xformers_memory_efficient_attention()
             for image in base_images:
@@ -193,7 +197,7 @@ class StableDiffusion:
         image_output = []
         for image in generated_images:
             with io.BytesIO() as buf:
-                image.save(buf, format="PNG")
+                image.save(buf, format=output_format)
                 image_output.append(buf.getvalue())
 
         return image_output
