@@ -21,4 +21,3 @@ jobs:
       - name: Analysing the code with pycodestyle
         run: |
           pycodestyle --first --ignore=E501 $(git ls-files '*.py')
-          # pyflakes --ignore=F401 $(git ls-files '*.py')
