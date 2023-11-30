@@ -138,7 +138,7 @@ class StableDiffusion:
         """
         Runs the Stable Diffusion pipeline on the given prompt and outputs images.
         """
-        import pillow_avif
+        import pillow_avif  # noqa
         import torch
 
         max_embeddings_multiples = self._count_token(p=prompt, n=n_prompt)
