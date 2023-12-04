@@ -18,7 +18,7 @@ from setup import (
     gpu="A10G",
     secrets=[Secret.from_dotenv(__file__)],
 )
-class StableDiffusion:
+class Txt2Img:
     """
     A class that wraps the Stable Diffusion pipeline and scheduler.
     """
@@ -231,7 +231,6 @@ class StableDiffusion:
         from basicsr.archs.rrdbnet_arch import RRDBNet
         from gfpgan import GFPGANer
         from realesrgan import RealESRGANer
-        from tqdm import tqdm
 
         model_name = upscaler
         if model_name == "RealESRGAN_x4plus":
@@ -271,20 +270,18 @@ class StableDiffusion:
             )
 
         upscaled_imgs = []
-        with tqdm(total=len(base_images)) as progress_bar:
-            for img in base_images:
-                img = numpy.array(img)
-                if use_face_enhancer:
-                    _, _, enhance_result = face_enhancer.enhance(
-                        img,
-                        has_aligned=False,
-                        only_center_face=False,
-                        paste_back=True,
-                    )
-                else:
-                    enhance_result, _ = upsampler.enhance(img)
+        for img in base_images:
+            img = numpy.array(img)
+            if use_face_enhancer:
+                _, _, enhance_result = face_enhancer.enhance(
+                    img,
+                    has_aligned=False,
+                    only_center_face=False,
+                    paste_back=True,
+                )
+            else:
+                enhance_result, _ = upsampler.enhance(img)
 
-                upscaled_imgs.append(PIL.Image.fromarray(enhance_result))
-                progress_bar.update(1)
+            upscaled_imgs.append(PIL.Image.fromarray(enhance_result))
 
         return upscaled_imgs

@@ -4,7 +4,7 @@ import modal
 import util
 
 stub = modal.Stub("run-stable-diffusion-cli")
-stub.run_inference = modal.Function.from_name("stable-diffusion-cli", "StableDiffusion.run_inference")
+stub.run_inference = modal.Function.from_name("stable-diffusion-cli", "Txt2Img.run_inference")
 
 
 @stub.local_entrypoint()
@@ -20,6 +20,7 @@ def main(
     upscaler: str = "",
     use_face_enhancer: str = "False",
     fix_by_controlnet_tile: str = "False",
+    output_format: str = "png",
 ):
     """
     This function is the entrypoint for the Runway CLI.
@@ -43,8 +44,9 @@ def main(
             upscaler=upscaler,
             use_face_enhancer=use_face_enhancer == "True",
             fix_by_controlnet_tile=fix_by_controlnet_tile == "True",
+            output_format=output_format,
         )
-        util.save_images(directory, images, seed_generated, i)
+        util.save_images(directory, images, seed_generated, i, output_format)
         total_time = time.time() - start_time
         print(f"Sample {i} took {total_time:.3f}s ({(total_time)/len(images):.3f}s / image).")
 
