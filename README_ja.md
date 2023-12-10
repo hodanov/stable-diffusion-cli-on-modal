@@ -46,8 +46,8 @@ modal token new
 1. リポジトリをgit clone
 2. ./setup_files/config.example.yml を ./setup_files/config.ymlにコピー
 3. Makefile を開いてプロンプトを設定
-4. make deployをコマンドラインで実行(Modal上にアプリケーションが構築されます)
-5. make run(スクリプトが起動します)
+4. make appをコマンドラインで実行(Modal上にアプリケーションが構築されます)
+5. make img_by_sd15_txt2img(スクリプトが起動します)
 
 ## ディレクトリ構成
 
@@ -58,7 +58,8 @@ modal token new
 ├── README.md
 ├── sdcli/                  # A directory with scripts to run inference.
 │   ├── outputs/            # Images are outputted this directory.
-│   ├── txt2img.py          # A script to run txt2img inference.
+│   ├── sd15_txt2img.py     # A script to run sd15_txt2img inference.
+│   ├── sdxl_txt2img.py     # A script to run sdxl_txt2img inference.
 │   └── util.py
 └── setup_files/            # A directory with config files.
     ├── __main__.py         # A main script to run inference.
@@ -66,7 +67,8 @@ modal token new
     ├── config.yml          # To set a model, vae and some tools.
     ├── requirements.txt
     ├── setup.py            # Build an application to deploy on Modal.
-    └── txt2img.py          # There is a class to run inference.
+    ├── stable_diffusion_1_5.py # There is a class to run inference about sd15.
+    └── stable_diffusion_xl.py  # There is a class to run inference about sdxl.
 ```
 
 ## 使い方の詳細
@@ -133,7 +135,8 @@ run:
  --seed 12321 |
  --upscaler "RealESRGAN_x2plus" \
  --use-face-enhancer "False" \
- --fix-by-controlnet-tile "True"
+ --fix-by-controlnet-tile "True" \
+ --output-fomart "png"
 ```
 
 - prompt: プロンプトを指定します。
@@ -145,13 +148,14 @@ run:
 - seed: seedを指定します。
 - upscaler: 画像の解像度を上げるためのアップスケーラーを指定します。
 - fix-by-controlnet-tile: ControlNet 1.1 Tileの利用有無を指定します。有効にすると、崩れた画像を修復しつつ、高解像度な画像を生成します。
+- output-format: 出力フォーマットを指定します。avifも指定可能です。
 
 ### 5. make deployの実行
 
 下記のコマンドでModal上にアプリケーションが構築されます。
 
 ```bash
-make deploy
+make app
 ```
 
 ### 6. make runの実行
@@ -159,5 +163,5 @@ make deploy
 下記のコマンドでtxt2img推論が実行されます。
 
 ```bash
-make run
+make img_by_sd15_txt2img
 ```

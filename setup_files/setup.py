@@ -64,6 +64,26 @@ def download_model(name: str, model_url: str, token: str):
     pipe.save_pretrained(cache_path, safe_serialization=True)
 
 
+def download_model_sdxl(name: str, model_url: str, token: str):
+    """
+    Download a sdxl model.
+    """
+    cache_path = os.path.join(BASE_CACHE_PATH, name)
+    pipe = diffusers.StableDiffusionXLPipeline.from_single_file(
+        pretrained_model_link_or_path=model_url,
+        use_auth_token=token,
+        cache_dir=cache_path,
+    )
+    pipe.save_pretrained(cache_path, safe_serialization=True)
+
+    refiner_cache_path = cache_path + "-refiner"
+    refiner = diffusers.StableDiffusionXLImg2ImgPipeline.from_single_file(
+        "https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-1.0/blob/main/sd_xl_refiner_1.0.safetensors",
+        cache_dir=refiner_cache_path,
+    )
+    refiner.save_pretrained(refiner_cache_path, safe_serialization=True)
+
+
 def build_image():
     """
     Build the Docker image.
@@ -76,8 +96,12 @@ def build_image():
         config = yaml.safe_load(file)
 
     model = config.get("model")
+    use_xl = config.get("use_xl")
     if model is not None:
-        download_model(name=model["name"], model_url=model["url"], token=token)
+        if use_xl is not None and use_xl:
+            download_model_sdxl(name=model["name"], model_url=model["url"], token=token)
+        else:
+            download_model(name=model["name"], model_url=model["url"], token=token)
 
     vae = config.get("vae")
     if vae is not None:

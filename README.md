@@ -44,8 +44,8 @@ To use the script, execute the below.
 1. git clone the repository.
 2. Copy `./setup_files/config.sample.yml` to `./setup_files/config.yml`
 3. Open the Makefile and set prompts.
-4. Execute `make deploy` command. An application will be deployed to Modal.
-5. Execute `make run` command.
+4. Execute `make app` command. An application will be deployed to Modal.
+5. Execute `make img_by_sd15_txt2img` command.
 
 Images are generated and output to the `outputs/` directory.
 
@@ -58,7 +58,8 @@ Images are generated and output to the `outputs/` directory.
 ├── README.md
 ├── sdcli/                  # A directory with scripts to run inference.
 │   ├── outputs/            # Images are outputted this directory.
-│   ├── txt2img.py          # A script to run txt2img inference.
+│   ├── sd15_txt2img.py     # A script to run sd15_txt2img inference.
+│   ├── sdxl_txt2img.py     # A script to run sdxl_txt2img inference.
 │   └── util.py
 └── setup_files/            # A directory with config files.
     ├── __main__.py         # A main script to run inference.
@@ -66,7 +67,8 @@ Images are generated and output to the `outputs/` directory.
     ├── config.yml          # To set a model, vae and some tools.
     ├── requirements.txt
     ├── setup.py            # Build an application to deploy on Modal.
-    └── txt2img.py          # There is a class to run inference.
+    ├── stable_diffusion_1_5.py # There is a class to run inference about sd15.
+    └── stable_diffusion_xl.py  # There is a class to run inference about sdxl.
 ```
 
 ## How to use
@@ -131,7 +133,8 @@ run:
  --seed 12321 |
  --upscaler "RealESRGAN_x2plus" \
  --use-face-enhancer "False" \
- --fix-by-controlnet-tile "True"
+ --fix-by-controlnet-tile "True" \
+ --output-fomart "avif"
 ```
 
 ### 5. make deploy
@@ -139,7 +142,7 @@ run:
 Execute the below command. An application will be deployed on Modal.
 
 ```bash
-make deploy
+make app
 ```
 
 ### 6. make run
@@ -147,7 +150,7 @@ make deploy
 The txt2img inference is executed with the following command.
 
 ```bash
-make run
+make img_by_sd15_txt2img
 ```
 
 Thank you.
