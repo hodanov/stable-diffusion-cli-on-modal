@@ -18,7 +18,7 @@ from setup import (
     gpu="A10G",
     secrets=[Secret.from_dotenv(__file__)],
 )
-class Txt2Img:
+class SD15Txt2Img:
     """
     A class that wraps the Stable Diffusion pipeline and scheduler.
     """
