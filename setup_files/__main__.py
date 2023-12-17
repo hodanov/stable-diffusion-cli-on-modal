@@ -7,7 +7,7 @@ from setup import stub
 
 @stub.function(gpu="A10G")
 def main():
-    stable_diffusion_1_5.SD15Txt2Img
+    stable_diffusion_1_5.SD15
     stable_diffusion_xl.SDXLTxt2Img
 
 

@@ -18,9 +18,9 @@ from setup import (
     gpu="A10G",
     secrets=[Secret.from_dotenv(__file__)],
 )
-class SD15Txt2Img:
+class SD15:
     """
-    A class that wraps the Stable Diffusion pipeline and scheduler.
+    SD15 is a class that runs inference using Stable Diffusion 1.5.
     """
 
     def __enter__(self):
@@ -50,6 +50,7 @@ class SD15Txt2Img:
             self.cache_path,
             subfolder="scheduler",
         )
+        # self.pipe.scheduler = diffusers.LCMScheduler.from_config(self.pipe.scheduler.config)
 
         vae = config.get("vae")
         if vae is not None:
@@ -121,7 +122,7 @@ class SD15Txt2Img:
         return max_embeddings_multiples
 
     @method()
-    def run_inference(
+    def run_txt2img_inference(
         self,
         prompt: str,
         n_prompt: str,
@@ -148,7 +149,7 @@ class SD15Txt2Img:
         self.pipe.enable_xformers_memory_efficient_attention()
         with torch.autocast("cuda"):
             generated_images = self.pipe(
-                prompt * batch_size,
+                prompt=prompt * batch_size,
                 negative_prompt=n_prompt * batch_size,
                 height=height,
                 width=width,
@@ -156,6 +157,87 @@ class SD15Txt2Img:
                 guidance_scale=7.5,
                 max_embeddings_multiples=max_embeddings_multiples,
                 generator=generator,
+            ).images
+
+        base_images = generated_images
+
+        """
+        Fix the generated images by the control_v11f1e_sd15_tile when `fix_by_controlnet_tile` is `True`.
+        https://huggingface.co/lllyasviel/control_v11f1e_sd15_tile
+        """
+        if fix_by_controlnet_tile:
+            self.controlnet_pipe.to("cuda")
+            self.controlnet_pipe.enable_vae_tiling()
+            self.controlnet_pipe.enable_xformers_memory_efficient_attention()
+            for image in base_images:
+                image = self._resize_image(image=image, scale_factor=2)
+                with torch.autocast("cuda"):
+                    fixed_by_controlnet = self.controlnet_pipe(
+                        prompt=prompt * batch_size,
+                        negative_prompt=n_prompt * batch_size,
+                        num_inference_steps=steps,
+                        strength=0.3,
+                        guidance_scale=7.5,
+                        max_embeddings_multiples=max_embeddings_multiples,
+                        generator=generator,
+                        image=image,
+                    ).images
+            generated_images.extend(fixed_by_controlnet)
+            base_images = fixed_by_controlnet
+
+        if upscaler != "":
+            upscaled = self._upscale(
+                base_images=base_images,
+                half_precision=False,
+                tile=700,
+                upscaler=upscaler,
+                use_face_enhancer=use_face_enhancer,
+            )
+            generated_images.extend(upscaled)
+
+        image_output = []
+        for image in generated_images:
+            with io.BytesIO() as buf:
+                image.save(buf, format=output_format)
+                image_output.append(buf.getvalue())
+
+        return image_output
+
+    @method()
+    def run_img2img_inference(
+        self,
+        prompt: str,
+        n_prompt: str,
+        batch_size: int = 1,
+        steps: int = 30,
+        seed: int = 1,
+        upscaler: str = "",
+        use_face_enhancer: bool = False,
+        fix_by_controlnet_tile: bool = False,
+        output_format: str = "png",
+        base_image_url: str = "",
+    ) -> list[bytes]:
+        """
+        Runs the Stable Diffusion pipeline on the given prompt and outputs images.
+        """
+        import pillow_avif  # noqa: F401
+        import torch
+        from diffusers.utils import load_image
+
+        max_embeddings_multiples = self._count_token(p=prompt, n=n_prompt)
+        generator = torch.Generator("cuda").manual_seed(seed)
+        self.pipe.to("cuda")
+        self.pipe.enable_vae_tiling()
+        self.pipe.enable_xformers_memory_efficient_attention()
+        with torch.autocast("cuda"):
+            generated_images = self.pipe(
+                prompt=prompt * batch_size,
+                negative_prompt=n_prompt * batch_size,
+                num_inference_steps=steps,
+                guidance_scale=7.5,
+                max_embeddings_multiples=max_embeddings_multiples,
+                generator=generator,
+                image=load_image(base_image_url),
             ).images
 
         base_images = generated_images
