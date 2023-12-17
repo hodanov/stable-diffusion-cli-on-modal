@@ -4,7 +4,7 @@
 
 ## このスクリプトでできること
 
-1. txt2imgによる画像生成ができます。
+1. txt2imgまたはimt2imgによる画像生成ができます。
 
 ![txt2imgでの生成画像例](assets/20230902_tile_imgs.png)
 
@@ -53,20 +53,21 @@ modal token new
 
 ```txt
 .
-├── .env                    # Secrets manager
+├── .env                        # Secrets manager
 ├── Makefile
 ├── README.md
-├── sdcli/                  # A directory with scripts to run inference.
-│   ├── outputs/            # Images are outputted this directory.
-│   ├── sd15_txt2img.py     # A script to run sd15_txt2img inference.
-│   ├── sdxl_txt2img.py     # A script to run sdxl_txt2img inference.
+├── sdcli/                      # A directory with scripts to run inference.
+│   ├── outputs/                # Images are outputted this directory.
+│   ├── sd15_img2img.py         # A script to run sd15_img2img inference.
+│   ├── sd15_txt2img.py         # A script to run sd15_txt2img inference.
+│   ├── sdxl_txt2img.py         # A script to run sdxl_txt2img inference.
 │   └── util.py
-└── setup_files/            # A directory with config files.
-    ├── __main__.py         # A main script to run inference.
-    ├── Dockerfile          # To build a base image.
-    ├── config.yml          # To set a model, vae and some tools.
+└── setup_files/                # A directory with config files.
+    ├── __main__.py             # A main script to run inference.
+    ├── Dockerfile              # To build a base image.
+    ├── config.yml              # To set a model, vae and some tools.
     ├── requirements.txt
-    ├── setup.py            # Build an application to deploy on Modal.
+    ├── setup.py                # Build an application to deploy on Modal.
     ├── stable_diffusion_1_5.py # There is a class to run inference about sd15.
     └── stable_diffusion_xl.py  # There is a class to run inference about sdxl.
 ```
