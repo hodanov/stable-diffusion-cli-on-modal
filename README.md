@@ -138,7 +138,7 @@ run:
  --output-fomart "avif"
 ```
 
-### 5. make deploy
+### 5. Deploy an application
 
 Execute the below command. An application will be deployed on Modal.
 
@@ -146,7 +146,7 @@ Execute the below command. An application will be deployed on Modal.
 make app
 ```
 
-### 6. make run
+### 6. Run inference
 
 The txt2img inference is executed with the following command.
 
