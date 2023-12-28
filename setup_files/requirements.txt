@@ -4,7 +4,7 @@ diffusers[torch]==0.24.0
 onnxruntime==1.16.3
 safetensors==0.4.1
 torch==2.1.0
-transformers==4.36.1
+transformers==4.36.2
 xformers==0.0.22.post7
 
 realesrgan==0.3.0
