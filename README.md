@@ -42,7 +42,7 @@ Please see [the documentation of Modal](https://modal.com/docs/guide) for modals
 To use the script, execute the below.
 
 1. git clone the repository.
-2. Copy `./setup_files/config.sample.yml` to `./setup_files/config.yml`
+2. Copy `./app/config.sample.yml` to `./app/config.yml`
 3. Open the Makefile and set prompts.
 4. Execute `make app` command. An application will be deployed to Modal.
 5. Execute `make img_by_sd15_txt2img` command.
@@ -56,13 +56,13 @@ Images are generated and output to the `outputs/` directory.
 ├── .env                        # Secrets manager
 ├── Makefile
 ├── README.md
-├── sdcli/                      # A directory with scripts to run inference.
+├── cmd/                      # A directory with scripts to run inference.
 │   ├── outputs/                # Images are outputted this directory.
 │   ├── sd15_img2img.py         # A script to run sd15_img2img inference.
 │   ├── sd15_txt2img.py         # A script to run sd15_txt2img inference.
 │   ├── sdxl_txt2img.py         # A script to run sdxl_txt2img inference.
 │   └── util.py
-└── setup_files/                # A directory with config files.
+└── app/                # A directory with config files.
     ├── __main__.py             # A main script to run inference.
     ├── Dockerfile              # To build a base image.
     ├── config.yml              # To set a model, vae and some tools.
@@ -91,7 +91,7 @@ This script downloads and uses a model from HuggingFace, but if you want to use 
 HUGGING_FACE_TOKEN="Write your hugging face token here."
 ```
 
-### 3. Add the model to ./setup_files/config.yml
+### 3. Add the model to ./app/config.yml
 
 Add the model used for inference. Use the Safetensors file as is. VAE, LoRA, and Textual Inversion are also configurable.
 
@@ -124,7 +124,7 @@ Set the prompt to Makefile.
 ```makefile
 # ex)
 run:
- cd ./sdcli && modal run txt2img.py \
+ cd ./cmd && modal run txt2img.py \
  --prompt "hogehoge" \
  --n-prompt "mogumogu" \
  --height 768 \
