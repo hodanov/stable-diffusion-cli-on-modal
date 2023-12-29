@@ -3,8 +3,8 @@ name: Docker image CI
 on:
   push:
     paths:
-      - setup_files/Dockerfile
-      - setup_files/requirements.txt
+      - app/Dockerfile
+      - app/requirements.txt
 
 jobs:
   build:
