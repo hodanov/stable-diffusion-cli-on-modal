@@ -5,6 +5,7 @@ on:
     paths:
       - app/Dockerfile
       - app/requirements.txt
+      - .github/workflows/docker_image_ci.yml
 
 jobs:
   build:
