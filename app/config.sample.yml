@@ -1,7 +1,7 @@
 ##########
 # This is the config file to set a base model, vae and some tools.
 # Rename the file to `config.yml` before running the script.
-# Execute `modal deploy ./setup_files/setup.py` every time modify this file.
+# Execute `modal deploy ./app/setup.py` every time modify this file.
 ##########
 
 ##########

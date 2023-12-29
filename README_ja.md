@@ -44,7 +44,7 @@ modal token new
 下記の手順で画像が生成され、outputs ディレクトリに出力されます。
 
 1. リポジトリをgit clone
-2. ./setup_files/config.example.yml を ./setup_files/config.ymlにコピー
+2. ./app/config.example.yml を ./app/config.ymlにコピー
 3. Makefile を開いてプロンプトを設定
 4. make appをコマンドラインで実行(Modal上にアプリケーションが構築されます)
 5. make img_by_sd15_txt2img(スクリプトが起動します)
@@ -56,13 +56,13 @@ modal token new
 ├── .env                        # Secrets manager
 ├── Makefile
 ├── README.md
-├── sdcli/                      # A directory with scripts to run inference.
+├── cmd/                      # A directory with scripts to run inference.
 │   ├── outputs/                # Images are outputted this directory.
 │   ├── sd15_img2img.py         # A script to run sd15_img2img inference.
 │   ├── sd15_txt2img.py         # A script to run sd15_txt2img inference.
 │   ├── sdxl_txt2img.py         # A script to run sdxl_txt2img inference.
 │   └── util.py
-└── setup_files/                # A directory with config files.
+└── app/                # A directory with config files.
     ├── __main__.py             # A main script to run inference.
     ├── Dockerfile              # To build a base image.
     ├── config.yml              # To set a model, vae and some tools.
@@ -91,7 +91,7 @@ Hugging FaceのトークンをHUGGING_FACE_TOKENに記入します。
 HUGGING_FACE_TOKEN="ここにHuggingFaceのトークンを記載する"
 ```
 
-### 3. ./setup_files/config.ymlを設定する
+### 3. ./app/config.ymlを設定する
 
 推論に使うモデルを設定します。Safetensorsファイルをそのまま利用します。VAE、LoRA、Textual Inversionも設定可能です。
 
@@ -126,7 +126,7 @@ loras:
 ```makefile
 # 設定例
 run:
- cd ./sdcli && modal run txt2img.py \
+ cd ./cmd && modal run txt2img.py \
  --prompt "hogehoge" \
  --n-prompt "mogumogu" \
  --height 768 \

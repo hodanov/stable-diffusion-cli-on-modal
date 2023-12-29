@@ -3,8 +3,9 @@ name: Docker image CI
 on:
   push:
     paths:
-      - setup_files/Dockerfile
-      - setup_files/requirements.txt
+      - app/Dockerfile
+      - app/requirements.txt
+      - .github/workflows/docker_image_ci.yml
 
 jobs:
   build:
@@ -13,5 +14,5 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build the Docker image
         run: |
-          cd setup_files
+          cd app
           docker build . -f Dockerfile
