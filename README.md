@@ -20,13 +20,13 @@ This is a Diffusers-based script for running Stable Diffusion on [Modal](https:/
 The app requires the following to run:
 
 - python: > 3.10
-- modal-client
+- modal
 - A token for Modal.
 
-The `modal-client` is the Python library. In order to install that:
+The `modal` is the Python library. In order to install that:
 
 ```bash
-pip install modal-client
+pip install modal
 ```
 
 And you need a modal token to use this script:
