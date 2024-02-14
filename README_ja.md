@@ -21,14 +21,14 @@
 このスクリプトを実行するには最低限下記のツールが必要です:
 
 - python: > 3.10
-- modal-client
+- modal
 - ModalのAPIトークン
 - Hagging FaceのAPIトークン（非公開のリポジトリのモデルを参照したい場合に必須）
 
-`modal-client`はModalをCLIから操作するためのPythonライブラリです。下記のようにインストールします:
+`modal`はModalをCLIから操作するためのPythonライブラリです。下記のようにインストールします:
 
 ```bash
-pip install modal-client
+pip install modal
 ```
 
 And you need a modal token to use this script:
