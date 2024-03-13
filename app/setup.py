@@ -136,11 +136,9 @@ base_stub = Image.from_dockerfile(
     path="Dockerfile",
     context_mount=Mount.from_local_file("requirements.txt"),
 )
-stub.image = base_stub.extend(
-    dockerfile_commands=[
-        "FROM base",
-        "COPY config.yml /",
-    ],
+stub.image = base_stub.dockerfile_commands(
+    "FROM base",
+    "COPY config.yml /",
     context_mount=Mount.from_local_file("config.yml"),
 ).run_function(
     build_image,
