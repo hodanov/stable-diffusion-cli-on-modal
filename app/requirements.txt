@@ -23,3 +23,5 @@ pyyaml
 
 # Use the below in 'download_from_original_stable_diffusion_ckpt'.
 omegaconf==2.3.0
+
+peft

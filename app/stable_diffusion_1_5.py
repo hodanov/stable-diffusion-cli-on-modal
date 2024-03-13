@@ -4,7 +4,7 @@ import io
 import os
 
 import PIL.Image
-from modal import Secret, method
+from modal import Secret, enter, method
 from setup import (
     BASE_CACHE_PATH,
     BASE_CACHE_PATH_CONTROLNET,
@@ -23,7 +23,8 @@ class SD15:
     SD15 is a class that runs inference using Stable Diffusion 1.5.
     """
 
-    def __enter__(self):
+    @enter()
+    def _setup(self):
         import diffusers
         import torch
         import yaml
@@ -69,6 +70,7 @@ class SD15:
                 else:
                     print(f"The directory '{path}' does not exist. Need to execute 'modal deploy' first.")
                 self.pipe.load_lora_weights(".", weight_name=path)
+            self.pipe.fuse_lora()
 
         textual_inversions = config.get("textual_inversions")
         if textual_inversions is not None:
