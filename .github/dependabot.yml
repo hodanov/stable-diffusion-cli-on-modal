@@ -5,15 +5,23 @@
 
 version: 2
 updates:
-  - package-ecosystem: 'pip' # See documentation for possible values
-    directory: './app' # Location of package manifests
+  - package-ecosystem: "pip" # See documentation for possible values
+    directory: "./app" # Location of package manifests
     schedule:
-      interval: 'weekly'
-  - package-ecosystem: 'docker'
-    directory: './app'
+      interval: "weekly"
+  - package-ecosystem: "docker"
+    directory: "./app"
     schedule:
-      interval: 'weekly'
-  - package-ecosystem: 'github-actions'
-    directory: '/'
+      interval: "weekly"
+    groups:
+      docker-dependencies:
+        patterns:
+          - "*"
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
-      interval: 'monthly'
+      interval: "monthly"
+    groups:
+      workflow-dependencies:
+        patterns:
+          - "*"
