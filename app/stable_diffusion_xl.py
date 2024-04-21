@@ -5,10 +5,10 @@ import os
 
 import PIL.Image
 from modal import Secret, enter, method
-from setup import BASE_CACHE_PATH, BASE_CACHE_PATH_CONTROLNET, stub
+from setup import BASE_CACHE_PATH, app
 
 
-@stub.cls(
+@app.cls(
     gpu="A10G",
     secrets=[Secret.from_dotenv(__file__)],
 )
@@ -39,13 +39,13 @@ class SDXLTxt2Img:
             variant="fp16",
         )
 
-        # self.refiner_cache_path = self.cache_path + "-refiner"
-        # self.refiner = diffusers.StableDiffusionXLImg2ImgPipeline.from_pretrained(
-        #     self.refiner_cache_path,
-        #     torch_dtype=torch.float16,
-        #     use_safetensors=True,
-        #     variant="fp16",
-        # )
+        self.refiner_cache_path = self.cache_path + "-refiner"
+        self.refiner = diffusers.StableDiffusionXLImg2ImgPipeline.from_pretrained(
+            self.refiner_cache_path,
+            torch_dtype=torch.float16,
+            use_safetensors=True,
+            variant="fp16",
+        )
 
         # controlnets = config.get("controlnets")
         # if controlnets is not None:
@@ -94,12 +94,10 @@ class SDXLTxt2Img:
         n_prompt: str,
         height: int = 1024,
         width: int = 1024,
-        batch_size: int = 1,
         steps: int = 30,
         seed: int = 1,
         upscaler: str = "",
         use_face_enhancer: bool = False,
-        fix_by_controlnet_tile: bool = False,
         output_format: str = "png",
     ) -> list[bytes]:
         """
@@ -119,37 +117,33 @@ class SDXLTxt2Img:
         ).images
         base_images = generated_images
 
-        # for image in base_images:
-        #     image = self._resize_image(image=image, scale_factor=2)
-        #     self.refiner.to("cuda")
-        #     refined_images = self.refiner(
-        #         prompt=prompt,
-        #         negative_prompt=n_prompt,
-        #         num_inference_steps=steps,
-        #         strength=0.1,
-        #         # guidance_scale=7.5,
-        #         generator=generator,
-        #         image=image,
-        #     ).images
-        # generated_images.extend(refined_images)
-        # base_images = refined_images
+        for image in base_images:
+            image = self._resize_image(image=image, scale_factor=2)
+            self.refiner.to("cuda")
+            refined_images = self.refiner(
+                prompt=prompt,
+                negative_prompt=n_prompt,
+                num_inference_steps=steps,
+                strength=0.1,
+                # guidance_scale=7.5,
+                generator=generator,
+                image=image,
+            ).images
+        generated_images.extend(refined_images)
+        base_images = refined_images
+
         """
         Fix the generated images by the control_v11f1e_sd15_tile when `fix_by_controlnet_tile` is `True`.
         https://huggingface.co/lllyasviel/control_v11f1e_sd15_tile
         """
         # if fix_by_controlnet_tile:
         #     max_embeddings_multiples = self._count_token(p=prompt, n=n_prompt)
-        #     print("========================確認用========================")
-        #     print("Step1")
         #     self.controlnet_pipe.to("cuda")
         #     self.controlnet_pipe.enable_vae_tiling()
         #     self.controlnet_pipe.enable_xformers_memory_efficient_attention()
-        #     print("Step2")
         #     for image in base_images:
         #         image = self._resize_image(image=image, scale_factor=2)
-        #         print("Step3")
         #         with torch.autocast("cuda"):
-        #             print("Step4")
         #             fixed_by_controlnet = self.controlnet_pipe(
         #                 prompt=prompt * batch_size,
         #                 negative_prompt=n_prompt * batch_size,
@@ -160,7 +154,6 @@ class SDXLTxt2Img:
         #                 generator=generator,
         #                 image=image,
         #             ).images
-        #     print("Step5")
         #     generated_images.extend(fixed_by_controlnet)
         #     base_images = fixed_by_controlnet
 

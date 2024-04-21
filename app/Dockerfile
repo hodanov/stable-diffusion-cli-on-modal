@@ -5,7 +5,7 @@ RUN apt-get update \
     && apt-get autoremove -y \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/* \
-    && pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu117 --no-cache-dir \
+    && pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu121 --no-cache-dir \
     && mkdir -p /vol/cache/esrgan \
     && wget --progress=dot:giga https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth -P /vol/cache/esrgan \
     && wget --progress=dot:giga https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.1/RealESRNet_x4plus.pth -P /vol/cache/esrgan \
