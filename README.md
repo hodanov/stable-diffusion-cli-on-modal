@@ -132,8 +132,7 @@ run:
  --samples 1 \
  --steps 30 \
  --seed 12321 |
- --upscaler "RealESRGAN_x2plus" \
- --use-face-enhancer "False" \
+ --use-upscaler "True" \
  --fix-by-controlnet-tile "True" \
  --output-fomart "avif"
 ```

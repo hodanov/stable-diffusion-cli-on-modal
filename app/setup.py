@@ -9,6 +9,7 @@ BASE_CACHE_PATH = "/vol/cache"
 BASE_CACHE_PATH_LORA = "/vol/cache/lora"
 BASE_CACHE_PATH_TEXTUAL_INVERSION = "/vol/cache/textual_inversion"
 BASE_CACHE_PATH_CONTROLNET = "/vol/cache/controlnet"
+BASE_CACHE_PATH_UPSCALER = "/vol/cache/upscaler"
 
 
 def download_file(url, file_name, file_path):
@@ -23,6 +24,15 @@ def download_file(url, file_name, file_path):
     os.makedirs(os.path.dirname(dir_names), exist_ok=True)
     with open(dir_names, mode="wb") as f:
         f.write(downloaded)
+
+
+def download_upscaler():
+    """
+    Download the stabilityai/sd-x2-latent-upscaler.
+    """
+    model_id = "stabilityai/sd-x2-latent-upscaler"
+    upscaler = diffusers.StableDiffusionLatentUpscalePipeline.from_pretrained(model_id)
+    upscaler.save_pretrained(BASE_CACHE_PATH_UPSCALER, safe_serialization=True)
 
 
 def download_controlnet(name: str, repo_id: str, token: str):
@@ -129,6 +139,8 @@ def build_image():
                 file_name=textual_inversion["name"],
                 file_path=BASE_CACHE_PATH_TEXTUAL_INVERSION,
             )
+
+    download_upscaler()
 
 
 app = App("stable-diffusion-cli")
