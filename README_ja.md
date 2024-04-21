@@ -134,8 +134,7 @@ run:
  --samples 1 \
  --steps 30 \
  --seed 12321 |
- --upscaler "RealESRGAN_x2plus" \
- --use-face-enhancer "False" \
+ --use-upscaler "True" \
  --fix-by-controlnet-tile "True" \
  --output-fomart "png"
 ```
@@ -147,7 +146,7 @@ run:
 - samples: 生成する画像の数を指定します。
 - steps: ステップ数を指定します。
 - seed: seedを指定します。
-- upscaler: 画像の解像度を上げるためのアップスケーラーを指定します。
+- use-upscaler: 画像の解像度を上げるためのアップスケーラーを有効にします。
 - fix-by-controlnet-tile: ControlNet 1.1 Tileの利用有無を指定します。有効にすると、崩れた画像を修復しつつ、高解像度な画像を生成します。
 - output-format: 出力フォーマットを指定します。avifも指定可能です。
 

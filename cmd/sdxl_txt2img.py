@@ -16,8 +16,7 @@ def main(
     samples: int = 5,
     steps: int = 20,
     seed: int = -1,
-    upscaler: str = "",
-    use_face_enhancer: str = "False",
+    use_upscaler: str = "False",
     output_format: str = "png",
 ):
     """
@@ -38,8 +37,7 @@ def main(
             width=width,
             steps=steps,
             seed=seed_generated,
-            upscaler=upscaler,
-            use_face_enhancer=use_face_enhancer == "True",
+            use_upscaler=use_upscaler == "True",
             output_format=output_format,
         )
         util.save_images(directory, images, seed_generated, i, output_format)
