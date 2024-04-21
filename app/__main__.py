@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import stable_diffusion_1_5
 import stable_diffusion_xl
-from setup import stub
+from setup import app
 
 
-@stub.function(gpu="A10G")
+@app.function(gpu="A10G")
 def main():
     stable_diffusion_1_5.SD15
     stable_diffusion_xl.SDXLTxt2Img

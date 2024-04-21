@@ -10,11 +10,11 @@ from setup import (
     BASE_CACHE_PATH_CONTROLNET,
     BASE_CACHE_PATH_LORA,
     BASE_CACHE_PATH_TEXTUAL_INVERSION,
-    stub,
+    app,
 )
 
 
-@stub.cls(
+@app.cls(
     gpu="A10G",
     secrets=[Secret.from_dotenv(__file__)],
 )
@@ -187,15 +187,16 @@ class SD15:
             generated_images.extend(fixed_by_controlnet)
             base_images = fixed_by_controlnet
 
-        if upscaler != "":
-            upscaled = self._upscale(
-                base_images=base_images,
-                half_precision=False,
-                tile=700,
-                upscaler=upscaler,
-                use_face_enhancer=use_face_enhancer,
-            )
-            generated_images.extend(upscaled)
+        # TODO: Upscaler stopped working due to update of dependent packages. Replace with diffusers upscaler.
+        # if upscaler != "":
+        #     upscaled = self._upscale(
+        #         base_images=base_images,
+        #         half_precision=False,
+        #         tile=700,
+        #         upscaler=upscaler,
+        #         use_face_enhancer=use_face_enhancer,
+        #     )
+        #     generated_images.extend(upscaled)
 
         image_output = []
         for image in generated_images:

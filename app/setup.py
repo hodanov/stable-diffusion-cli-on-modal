@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 
 import diffusers
-from modal import Image, Mount, Secret, Stub
+from modal import App, Image, Mount, Secret
 
 BASE_CACHE_PATH = "/vol/cache"
 BASE_CACHE_PATH_LORA = "/vol/cache/lora"
@@ -58,7 +58,7 @@ def download_model(name: str, model_url: str, token: str):
     cache_path = os.path.join(BASE_CACHE_PATH, name)
     pipe = diffusers.StableDiffusionPipeline.from_single_file(
         pretrained_model_link_or_path=model_url,
-        use_auth_token=token,
+        token=token,
         cache_dir=cache_path,
     )
     pipe.save_pretrained(cache_path, safe_serialization=True)
@@ -131,12 +131,12 @@ def build_image():
             )
 
 
-stub = Stub("stable-diffusion-cli")
+app = App("stable-diffusion-cli")
 base_stub = Image.from_dockerfile(
     path="Dockerfile",
     context_mount=Mount.from_local_file("requirements.txt"),
 )
-stub.image = base_stub.dockerfile_commands(
+app.image = base_stub.dockerfile_commands(
     "FROM base",
     "COPY config.yml /",
     context_mount=Mount.from_local_file("config.yml"),
