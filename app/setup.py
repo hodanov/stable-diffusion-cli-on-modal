@@ -86,13 +86,6 @@ def download_model_sdxl(name: str, model_url: str, token: str):
     )
     pipe.save_pretrained(cache_path, safe_serialization=True)
 
-    refiner_cache_path = cache_path + "-refiner"
-    refiner = diffusers.StableDiffusionXLImg2ImgPipeline.from_single_file(
-        "https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-1.0/blob/main/sd_xl_refiner_1.0.safetensors",
-        cache_dir=refiner_cache_path,
-    )
-    refiner.save_pretrained(refiner_cache_path, safe_serialization=True)
-
 
 def build_image():
     """
@@ -125,11 +118,7 @@ def build_image():
     loras = config.get("loras")
     if loras is not None:
         for lora in loras:
-            download_file(
-                url=lora["url"],
-                file_name=lora["name"],
-                file_path=BASE_CACHE_PATH_LORA,
-            )
+            download_file(url=lora["url"], file_name=lora["name"], file_path=BASE_CACHE_PATH_LORA)
 
     textual_inversions = config.get("textual_inversions")
     if textual_inversions is not None:
