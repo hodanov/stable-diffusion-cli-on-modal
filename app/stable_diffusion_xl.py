@@ -32,35 +32,18 @@ class SDXLTxt2Img:
         else:
             print(f"The directory '{self.cache_path}' does not exist.")
 
-        self.pipe = diffusers.AutoPipelineForText2Image.from_pretrained(
+        self.pipe = diffusers.DiffusionPipeline.from_pretrained(
             self.cache_path,
             torch_dtype=torch.float16,
             use_safetensors=True,
-            variant="fp16",
         )
 
-        self.refiner_cache_path = self.cache_path + "-refiner"
-        self.refiner = diffusers.StableDiffusionXLImg2ImgPipeline.from_pretrained(
-            self.refiner_cache_path,
+        self.upscaler_cache_path = self.cache_path
+        self.upscaler = diffusers.StableDiffusionXLImg2ImgPipeline.from_pretrained(
+            self.upscaler_cache_path,
             torch_dtype=torch.float16,
             use_safetensors=True,
-            variant="fp16",
         )
-
-        # controlnets = config.get("controlnets")
-        # if controlnets is not None:
-        #     for controlnet in controlnets:
-        #         path = os.path.join(BASE_CACHE_PATH_CONTROLNET, controlnet["name"])
-        #         controlnet = diffusers.ControlNetModel.from_pretrained(path, torch_dtype=torch.float16)
-        #         self.controlnet_pipe = diffusers.StableDiffusionControlNetPipeline.from_pretrained(
-        #             self.cache_path,
-        #             controlnet=controlnet,
-        #             custom_pipeline="lpw_stable_diffusion",
-        #             scheduler=self.pipe.scheduler,
-        #             vae=self.pipe.vae,
-        #             torch_dtype=torch.float16,
-        #             use_safetensors=True,
-        #         )
 
     def _count_token(self, p: str, n: str) -> int:
         """
@@ -107,63 +90,35 @@ class SDXLTxt2Img:
 
         generator = torch.Generator("cuda").manual_seed(seed)
         self.pipe.to("cuda")
+        self.pipe.enable_vae_tiling()
+        self.pipe.enable_xformers_memory_efficient_attention()
         generated_images = self.pipe(
             prompt=prompt,
             negative_prompt=n_prompt,
+            guidance_scale=7,
             height=height,
             width=width,
             generator=generator,
+            num_inference_steps=steps,
         ).images
-        base_images = generated_images
 
-        for image in base_images:
-            image = self._resize_image(image=image, scale_factor=2)
-            self.refiner.to("cuda")
-            refined_images = self.refiner(
-                prompt=prompt,
-                negative_prompt=n_prompt,
-                num_inference_steps=steps,
-                strength=0.1,
-                # guidance_scale=7.5,
-                generator=generator,
-                image=image,
-            ).images
-        generated_images.extend(refined_images)
-        base_images = refined_images
-
-        """
-        Fix the generated images by the control_v11f1e_sd15_tile when `fix_by_controlnet_tile` is `True`.
-        https://huggingface.co/lllyasviel/control_v11f1e_sd15_tile
-        """
-        # if fix_by_controlnet_tile:
-        #     max_embeddings_multiples = self._count_token(p=prompt, n=n_prompt)
-        #     self.controlnet_pipe.to("cuda")
-        #     self.controlnet_pipe.enable_vae_tiling()
-        #     self.controlnet_pipe.enable_xformers_memory_efficient_attention()
-        #     for image in base_images:
-        #         image = self._resize_image(image=image, scale_factor=2)
-        #         with torch.autocast("cuda"):
-        #             fixed_by_controlnet = self.controlnet_pipe(
-        #                 prompt=prompt * batch_size,
-        #                 negative_prompt=n_prompt * batch_size,
-        #                 num_inference_steps=steps,
-        #                 strength=0.3,
-        #                 guidance_scale=7.5,
-        #                 max_embeddings_multiples=max_embeddings_multiples,
-        #                 generator=generator,
-        #                 image=image,
-        #             ).images
-        #     generated_images.extend(fixed_by_controlnet)
-        #     base_images = fixed_by_controlnet
-
-        # if use_upscaler:
-        #     upscaled = self._upscale(
-        #         base_images=base_images,
-        #         half_precision=False,
-        #         tile=700,
-        #         upscaler=upscaler,
-        #     )
-        #     generated_images.extend(upscaled)
+        if use_upscaler:
+            base_images = generated_images
+            for image in base_images:
+                image = self._resize_image(image=image, scale_factor=2)
+                self.upscaler.to("cuda")
+                self.upscaler.enable_vae_tiling()
+                self.upscaler.enable_xformers_memory_efficient_attention()
+                upscaled_images = self.upscaler(
+                    prompt=prompt,
+                    negative_prompt=n_prompt,
+                    num_inference_steps=steps,
+                    strength=0.3,
+                    guidance_scale=7,
+                    generator=generator,
+                    image=image,
+                ).images
+            generated_images.extend(upscaled_images)
 
         image_output = []
         for image in generated_images:

@@ -29,7 +29,10 @@ img_by_sd15_img2img:
 img_by_sdxl_txt2img:
 	cd ./cmd && modal run sdxl_txt2img.py \
 	--prompt "A dog is running on the grass" \
+	--n-prompt "" \
 	--height 1024 \
 	--width 1024 \
 	--samples 1 \
+	--steps 30 \
+	--use-upscaler "True" \
 	--output-format "avif"
