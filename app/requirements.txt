@@ -1,4 +1,4 @@
-diffusers[torch]==0.27.2
+diffusers[torch]==0.29.2
 accelerate
 torch==2.3.0
 transformers==4.42.3
@@ -14,12 +14,3 @@ pillow-avif-plugin # To save images in AVIF format.
 pyyaml # To read the configuration file by written YAML.
 peft
 numpy==1.26.4
-
-# A module that was compiled using NumPy 1.x cannot be run in
-# NumPy 2.0.0 as it may crash. To support both 1.x and 2.x
-# versions of NumPy, modules must be compiled with NumPy 2.0.
-# Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
-
-# If you are a user of the module, the easiest solution will be to
-# downgrade to 'numpy<2' or try to upgrade the affected module.
-# We expect that some modules will need time to support NumPy 2.
