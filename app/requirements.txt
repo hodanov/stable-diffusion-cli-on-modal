@@ -5,7 +5,7 @@ transformers==4.42.3
 xformers==0.0.26.post1
 
 invisible_watermark # To help viewers identify the images as machine-generated.
-onnxruntime==1.18.0 # ONNX Runtime uses the following optimizations to speed up Stable Diffusion in CUDA.
+onnxruntime==1.18.1 # ONNX Runtime uses the following optimizations to speed up Stable Diffusion in CUDA.
 safetensors==0.4.3 # To store tensors safely.
 controlnet_aux
 
