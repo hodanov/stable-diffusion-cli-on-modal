@@ -111,7 +111,7 @@ class SDXLTxt2Img:
             image = self.refiner(
                 prompt=prompt,
                 negative_prompt=n_prompt,
-                num_inference_steps=50,
+                num_inference_steps=steps,
                 strength=0.3,
                 guidance_scale=7.5,
                 generator=generator,
