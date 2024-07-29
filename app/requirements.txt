@@ -1,7 +1,7 @@
 diffusers[torch]==0.29.2
 accelerate
 torch==2.3.1
-transformers==4.42.4
+transformers==4.43.3
 xformers==0.0.27
 
 invisible_watermark # To help viewers identify the images as machine-generated.
