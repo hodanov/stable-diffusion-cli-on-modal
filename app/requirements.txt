@@ -1,8 +1,8 @@
 diffusers[torch]==0.29.2
 accelerate
-torch==2.3.1
-transformers==4.42.4
-xformers==0.0.27
+torch==2.4.0
+transformers==4.43.3
+xformers==0.0.27.post2
 
 invisible_watermark # To help viewers identify the images as machine-generated.
 onnxruntime==1.18.1 # ONNX Runtime uses the following optimizations to speed up Stable Diffusion in CUDA.
