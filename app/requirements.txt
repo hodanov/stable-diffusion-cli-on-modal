@@ -5,7 +5,6 @@ transformers==4.43.3
 xformers==0.0.27.post2
 
 invisible_watermark # To help viewers identify the images as machine-generated.
-onnxruntime==1.18.1 # ONNX Runtime uses the following optimizations to speed up Stable Diffusion in CUDA.
 safetensors==0.4.3 # To store tensors safely.
 controlnet_aux
 
@@ -13,4 +12,3 @@ Pillow
 pillow-avif-plugin # To save images in AVIF format.
 pyyaml # To read the configuration file by written YAML.
 peft
-numpy==1.26.4
