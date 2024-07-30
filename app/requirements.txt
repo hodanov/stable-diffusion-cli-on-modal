@@ -13,4 +13,4 @@ Pillow
 pillow-avif-plugin # To save images in AVIF format.
 pyyaml # To read the configuration file by written YAML.
 peft
-numpy==1.26.4
+numpy==2.0.1
