@@ -5,7 +5,7 @@ transformers==4.44.2
 xformers==0.0.27.post2
 
 invisible_watermark # To help viewers identify the images as machine-generated.
-safetensors==0.4.4 # To store tensors safely.
+safetensors==0.4.5 # To store tensors safely.
 controlnet_aux
 
 Pillow
