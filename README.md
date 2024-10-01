@@ -19,8 +19,8 @@ This is a Diffusers-based script for running Stable Diffusion on [Modal](https:/
 
 The app requires the following to run:
 
-- python: > 3.10
-- modal
+- python: >= 3.11
+- modal: >= 0.64.155
 - A token for Modal.
 
 The `modal` is the Python library. In order to install that:

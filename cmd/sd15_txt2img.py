@@ -1,9 +1,10 @@
 import time
+
 import modal
 import util
 
 app = modal.App("run-stable-diffusion-cli")
-app.run_inference = modal.Function.from_name("stable-diffusion-cli", "SD15.run_txt2img_inference")
+run_inference = modal.Function.from_name("stable-diffusion-cli", "SDXLTxt2Img.run_inference")
 
 
 @app.local_entrypoint()
@@ -31,7 +32,7 @@ def main(
         if seed == -1:
             seed_generated = util.generate_seed()
         start_time = time.time()
-        images = app.run_inference.remote(
+        images = run_inference.remote(
             prompt=prompt,
             n_prompt=n_prompt,
             height=height,
