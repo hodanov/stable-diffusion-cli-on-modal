@@ -1,4 +1,4 @@
-FROM python:3.11.3-slim-bullseye
+FROM python:3.12.7-slim-bullseye
 COPY ./requirements.txt /
 RUN apt-get update \
     && apt-get install wget libgl1-mesa-glx libglib2.0-0 --no-install-recommends -y \
