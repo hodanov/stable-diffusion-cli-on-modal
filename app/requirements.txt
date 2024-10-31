@@ -1,4 +1,4 @@
-diffusers[torch]==0.30.3
+diffusers[torch]==0.31.0
 accelerate
 torch==2.4.1
 transformers==4.46.0
