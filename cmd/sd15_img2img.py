@@ -4,7 +4,9 @@ import modal
 import util
 
 stub = modal.Stub("run-stable-diffusion-cli")
-stub.run_inference = modal.Function.from_name("stable-diffusion-cli", "SD15.run_img2img_inference")
+stub.run_inference = modal.Function.from_name(
+    "stable-diffusion-cli", "SD15.run_img2img_inference"
+)
 
 
 @stub.local_entrypoint()
@@ -44,7 +46,9 @@ def main(
         )
         util.save_images(directory, images, seed_generated, i, output_format)
         total_time = time.time() - start_time
-        print(f"Sample {i} took {total_time:.3f}s ({(total_time)/len(images):.3f}s / image).")
+        print(
+            f"Sample {i} took {total_time:.3f}s ({(total_time)/len(images):.3f}s / image)."
+        )
 
     prompts: dict[str, int | str] = {
         "prompt": prompt,
