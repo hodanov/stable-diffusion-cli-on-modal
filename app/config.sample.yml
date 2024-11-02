@@ -6,6 +6,7 @@
 
 ##########
 # You can use a diffusers model and VAE on hugging face.
+version: "sd15" # 'sd15' or 'sdxl'.
 model:
   name: stable-diffusion-1-5
   url: https://huggingface.co/runwayml/stable-diffusion-v1-5/blob/main/v1-5-pruned.safetensors
