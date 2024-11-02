@@ -99,6 +99,7 @@ HUGGING_FACE_TOKEN="ここにHuggingFaceのトークンを記載する"
 
 ```yml
 # 設定例
+version: "sd15" # Specify 'sd15' or 'sdxl'.
 model:
   name: stable-diffusion-1-5
   url: https://huggingface.co/runwayml/stable-diffusion-v1-5/blob/main/v1-5-pruned.safetensors # Specify URL for the safetensor file.
@@ -117,6 +118,15 @@ LoRAは下記のように指定します。
 loras:
   - name: mecha.safetensors # ファイル名を指定。任意の名前で良いが、拡張子`.safetensors`は必須。
     url: https://civitai.com/api/download/models/150907?type=Model&format=SafeTensor # ダウンロードリンクを指定
+```
+
+SDXLを使いたい場合は`version`に`sdxl`を指定し、urlに使いたいsdxlのモデルを指定します。
+
+```yml
+version: "sdxl"
+model:
+  name: stable-diffusion-xl
+  url: https://huggingface.co/xxxx/xxxx
 ```
 
 ### 4. Makefileの設定（プロンプトの設定）
@@ -164,4 +174,8 @@ make app
 
 ```bash
 make img_by_sd15_txt2img
+
+or
+
+make img_by_sdxl_txt2img
 ```

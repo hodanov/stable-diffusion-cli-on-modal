@@ -97,6 +97,7 @@ Add the model used for inference. Use the Safetensors file as is. VAE, LoRA, and
 
 ```yml
 # ex)
+version: "sd15" # Specify 'sd15' or 'sdxl'.
 model:
   name: stable-diffusion-1-5
   url: https://huggingface.co/runwayml/stable-diffusion-v1-5/blob/main/v1-5-pruned.safetensors # Specify URL for the safetensor file.
@@ -115,6 +116,15 @@ If you want to use LoRA and Textual Inversion, configure as follows.
 loras:
   - name: lora_name.safetensors # Specify the LoRA file name. Any name is fine, but the extension `.safetensors` is required.
     url: download_link_here # Specify the download link for the safetensor file.
+```
+
+If you want to use SDXL:
+
+```yml
+version: "sdxl"
+model:
+  name: stable-diffusion-xl
+  url: https://huggingface.co/xxxx/xxxx
 ```
 
 ### 4. Setting prompts
@@ -151,6 +161,10 @@ The txt2img inference is executed with the following command.
 
 ```bash
 make img_by_sd15_txt2img
+
+or
+
+make img_by_sdxl_txt2img
 ```
 
 Thank you.
