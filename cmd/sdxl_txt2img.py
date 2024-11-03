@@ -22,7 +22,7 @@ def main(
     seed: int = -1,
     use_upscaler: str = "False",
     output_format: str = "png",
-):
+) -> None:
     """This function is the entrypoint for the Runway CLI.
     The function pass the given prompt to StableDiffusion on Modal,
     gets back a list of images and outputs images to local.
