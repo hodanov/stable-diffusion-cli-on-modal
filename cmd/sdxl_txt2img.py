@@ -5,33 +5,7 @@ import time
 
 import modal
 from domain import OutputDirectory, Prompts, Seed, StableDiffusionOutputManger
-from infrasctucture import RunInferenceInterface, RunInferenceSDXLTxt2Img
-
-
-def new_run_inference(
-    version: str,
-    prompts: Prompts,
-    output_format: str,
-    *,
-    use_upscaler: bool,
-) -> RunInferenceInterface:
-    match version:
-        case "sd15":
-            # TODO: sd15用のクラスを実装したら置き換える
-            return RunInferenceSDXLTxt2Img(
-                prompts=prompts,
-                use_upscaler=use_upscaler,
-                output_format=output_format,
-            )
-        case "sdxl":
-            return RunInferenceSDXLTxt2Img(
-                prompts=prompts,
-                use_upscaler=use_upscaler,
-                output_format=output_format,
-            )
-        case _:
-            msg = f"Invalid version: {version}. Must be 'sd15' or 'sdxl'."
-            raise ValueError(msg)
+from infrasctucture import new_txt2img
 
 
 @modal.App("run-stable-diffusion-cli").local_entrypoint()
@@ -45,6 +19,7 @@ def main(
     steps: int = 20,
     seed: int = -1,
     use_upscaler: str = "False",
+    fix_by_controlnet_tile: str = "True",
     output_format: str = "png",
 ) -> None:
     """This function is the entrypoint for the Runway CLI.
@@ -65,17 +40,18 @@ def main(
     prompts = Prompts(prompt, n_prompt, height, width, samples, steps)
     sd_output_manager = StableDiffusionOutputManger(prompts, directory_path)
 
-    run_inference = new_run_inference(
+    txt2img = new_txt2img(
         version,
         prompts,
         output_format,
         use_upscaler=use_upscaler == "True",
+        fix_by_controlnet_tile=fix_by_controlnet_tile == "True",
     )
 
     for sample_index in range(samples):
         start_time = time.time()
         new_seed = Seed(seed)
-        images = run_inference.exec(new_seed)
+        images = txt2img.run_inference(new_seed)
         for generated_image_index, image_bytes in enumerate(images):
             saved_path = sd_output_manager.save_image(
                 image_bytes,
