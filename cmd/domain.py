@@ -39,10 +39,6 @@ class Prompts:
             msg = "prompt should not be empty."
             raise ValueError(msg)
 
-        if n_prompt == "":
-            msg = "n_prompt should not be empty."
-            raise ValueError(msg)
-
         if height <= 0:
             msg = "height should be positive."
             raise ValueError(msg)
@@ -59,18 +55,36 @@ class Prompts:
             msg = "steps should be positive."
             raise ValueError(msg)
 
-        self.__dict: dict[str, int | str] = {
-            "prompt": prompt,
-            "n_prompt": n_prompt,
-            "height": height,
-            "width": width,
-            "samples": samples,
-            "steps": steps,
-        }
+        self.__prompt = prompt
+        self.__n_prompt = n_prompt
+        self.__height = height
+        self.__width = width
+        self.__samples = samples
+        self.__steps = steps
 
     @property
-    def dict(self) -> dict[str, int | str]:
-        return self.__dict
+    def prompt(self) -> str:
+        return self.__prompt
+
+    @property
+    def n_prompt(self) -> str:
+        return self.__n_prompt
+
+    @property
+    def height(self) -> int:
+        return self.__height
+
+    @property
+    def width(self) -> int:
+        return self.__width
+
+    @property
+    def samples(self) -> int:
+        return self.__samples
+
+    @property
+    def steps(self) -> int:
+        return self.__steps
 
 
 class OutputDirectory:
@@ -100,8 +114,8 @@ class StableDiffusionOutputManger:
         prompts_filename = time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
         output_path = f"{self.__output_directory}/prompts_{prompts_filename}.txt"
         with Path(output_path).open("wb") as file:
-            for name, value in self.__prompts.dict.items():
-                file.write(f"{name} = {value!r}\n".encode())
+            for key, value in vars(self.__prompts).items():
+                file.write(f"{key} = {value!r}\n".encode())
 
         return output_path
 
