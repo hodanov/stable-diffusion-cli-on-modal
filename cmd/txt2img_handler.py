@@ -5,7 +5,7 @@ import time
 
 import modal
 from domain import OutputDirectory, Prompts, Seed, StableDiffusionOutputManger
-from infrasctucture import new_txt2img
+from infrastructure import new_txt2img
 
 
 @modal.App("run-stable-diffusion-cli").local_entrypoint()
