@@ -1,4 +1,4 @@
-.PHONY: all app clean
+.PHONY: app
 
 app:
 	cd ./app && modal deploy __main__.py
