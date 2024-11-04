@@ -4,7 +4,8 @@ app:
 	cd ./app && modal deploy __main__.py
 
 img_by_sd15_txt2img:
-	cd ./cmd && modal run sd15_txt2img.py \
+	cd ./cmd && modal run txt2img_handler.py::main \
+	--version "sd15" \
 	--prompt "a photograph of an astronaut riding a horse" \
 	--n-prompt "" \
 	--height 512 \
@@ -27,7 +28,8 @@ img_by_sd15_img2img:
 	--base-image-url "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/diffusers/cat.png"
 
 img_by_sdxl_txt2img:
-	cd ./cmd && modal run sdxl_txt2img.py \
+	cd ./cmd && modal run txt2img_handler.py::main \
+	--version "sdxl" \
 	--prompt "A dog is running on the grass" \
 	--n-prompt "" \
 	--height 1024 \

@@ -39,10 +39,6 @@ class Prompts:
             msg = "prompt should not be empty."
             raise ValueError(msg)
 
-        if n_prompt == "":
-            msg = "n_prompt should not be empty."
-            raise ValueError(msg)
-
         if height <= 0:
             msg = "height should be positive."
             raise ValueError(msg)
