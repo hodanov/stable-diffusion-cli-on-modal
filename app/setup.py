@@ -1,5 +1,6 @@
 import os
 from abc import ABC, abstractmethod
+from pathlib import Path
 
 import diffusers
 from huggingface_hub import login
@@ -36,7 +37,7 @@ class StableDiffusionCLISetupSDXL(StableDiffusionCLISetupInterface):
         self.__token: str = token
 
     def download_model(self) -> None:
-        cache_path = os.path.join(BASE_CACHE_PATH, self.__model_name)
+        cache_path = Path(BASE_CACHE_PATH) / self.__model_name
         pipe = diffusers.StableDiffusionXLPipeline.from_single_file(
             pretrained_model_link_or_path=self.__model_url,
             use_auth_token=self.__token,
@@ -63,7 +64,7 @@ class StableDiffusionCLISetupSD15(StableDiffusionCLISetupInterface):
         self.__token: str = token
 
     def download_model(self) -> None:
-        cache_path = os.path.join(BASE_CACHE_PATH, self.__model_name)
+        cache_path = Path(BASE_CACHE_PATH) / self.__model_name
         pipe = diffusers.StableDiffusionPipeline.from_single_file(
             pretrained_model_link_or_path=self.__model_url,
             token=self.__token,
@@ -117,7 +118,7 @@ class CommonSetup:
                 )
 
     def __download_vae(self, name: str, model_url: str, token: str) -> None:
-        cache_path = os.path.join(BASE_CACHE_PATH, name)
+        cache_path = Path(BASE_CACHE_PATH, name)
         vae = diffusers.AutoencoderKL.from_single_file(
             pretrained_model_link_or_path=model_url,
             use_auth_token=token,
@@ -126,7 +127,7 @@ class CommonSetup:
         vae.save_pretrained(cache_path, safe_serialization=True)
 
     def __download_controlnet(self, name: str, repo_id: str, token: str) -> None:
-        cache_path = os.path.join(BASE_CACHE_PATH_CONTROLNET, name)
+        cache_path = Path(BASE_CACHE_PATH_CONTROLNET) / name
         controlnet = diffusers.ControlNetModel.from_pretrained(
             repo_id,
             use_auth_token=token,
@@ -142,7 +143,7 @@ class CommonSetup:
 
         req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
         downloaded = urlopen(req).read()
-        dir_names = os.path.join(file_path, file_name)
+        dir_names = Path(file_path) / file_name
         os.makedirs(os.path.dirname(dir_names), exist_ok=True)
         with open(dir_names, mode="wb") as f:
             f.write(downloaded)
