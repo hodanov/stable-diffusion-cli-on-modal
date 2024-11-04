@@ -5,8 +5,10 @@
 ## このスクリプトでできること
 
 1. txt2imgまたはimt2imgによる画像生成ができます。
-
-![txt2imgでの生成画像例](assets/20230902_tile_imgs.png)
+  ![txt2imgでの生成画像例](assets/20230902_tile_imgs.png)
+  利用可能なバージョン:
+    - SDXL
+    - 1.5
 
 2. アップスケーラーとControlNet Tileを利用した高解像度な画像を生成することができます。
 
@@ -58,10 +60,8 @@ modal token new
 ├── README.md
 ├── cmd/                      # A directory with scripts to run inference.
 │   ├── outputs/                # Images are outputted this directory.
-│   ├── sd15_img2img.py         # A script to run sd15_img2img inference.
-│   ├── sd15_txt2img.py         # A script to run sd15_txt2img inference.
-│   ├── sdxl_txt2img.py         # A script to run sdxl_txt2img inference.
-│   └── util.py
+...
+│   └── txt2img_handler.py         # A script to run txt2img inference.
 └── app/                # A directory with config files.
     ├── __main__.py             # A main script to run inference.
     ├── Dockerfile              # To build a base image.
@@ -135,18 +135,17 @@ model:
 
 ```makefile
 # 設定例
-run:
- cd ./cmd && modal run txt2img.py \
- --prompt "hogehoge" \
- --n-prompt "mogumogu" \
- --height 768 \
- --width 512 \
- --samples 1 \
- --steps 30 \
- --seed 12321 |
- --use-upscaler "True" \
- --fix-by-controlnet-tile "True" \
- --output-fomart "png"
+img_by_sdxl_txt2img:
+  cd ./cmd && modal run txt2img_handler.py::main \
+  --version "sdxl" \
+  --prompt "A dog is running on the grass" \
+  --n-prompt "" \
+  --height 1024 \
+  --width 1024 \
+  --samples 1 \
+  --steps 30 \
+  --use-upscaler "True" \
+  --output-format "avif"
 ```
 
 - prompt: プロンプトを指定します。
@@ -157,8 +156,8 @@ run:
 - steps: ステップ数を指定します。
 - seed: seedを指定します。
 - use-upscaler: 画像の解像度を上げるためのアップスケーラーを有効にします。
-- fix-by-controlnet-tile: ControlNet 1.1 Tileの利用有無を指定します。有効にすると、崩れた画像を修復しつつ、高解像度な画像を生成します。
-- output-format: 出力フォーマットを指定します。avifも指定可能です。
+- fix-by-controlnet-tile: ControlNet 1.1 Tileの利用有無を指定します。有効にすると、崩れた画像を修復しつつ、高解像度な画像を生成します。sd15のみ対応。
+- output-format: 出力フォーマットを指定します。avifとpngのみ対応。
 
 ### 5. アプリケーションをデプロイする
 

@@ -7,7 +7,10 @@ This is a Diffusers-based script for running Stable Diffusion on [Modal](https:/
 ## Features
 
 1. Image generation using txt2img or img2img.
-   ![](assets/20230902_tile_imgs.png)
+  ![example for txt2img](assets/20230902_tile_imgs.png)
+  Available versions:
+    - SDXL
+    - 1.5
 
 2. Upscaling
 
@@ -58,10 +61,8 @@ Images are generated and output to the `outputs/` directory.
 ├── README.md
 ├── cmd/                      # A directory with scripts to run inference.
 │   ├── outputs/                # Images are outputted this directory.
-│   ├── sd15_img2img.py         # A script to run sd15_img2img inference.
-│   ├── sd15_txt2img.py         # A script to run sd15_txt2img inference.
-│   ├── sdxl_txt2img.py         # A script to run sdxl_txt2img inference.
-│   └── util.py
+...
+│   └── txt2img_handler.py         # A script to run txt2img inference.
 └── app/                # A directory with config files.
     ├── __main__.py             # A main script to run inference.
     ├── Dockerfile              # To build a base image.
@@ -133,19 +134,29 @@ Set the prompt to Makefile.
 
 ```makefile
 # ex)
-run:
- cd ./cmd && modal run txt2img.py \
- --prompt "hogehoge" \
- --n-prompt "mogumogu" \
- --height 768 \
- --width 512 \
- --samples 1 \
- --steps 30 \
- --seed 12321 |
- --use-upscaler "True" \
- --fix-by-controlnet-tile "True" \
- --output-fomart "avif"
+img_by_sdxl_txt2img:
+  cd ./cmd && modal run txt2img_handler.py::main \
+  --version "sdxl" \
+  --prompt "A dog is running on the grass" \
+  --n-prompt "" \
+  --height 1024 \
+  --width 1024 \
+  --samples 1 \
+  --steps 30 \
+  --use-upscaler "True" \
+  --output-format "avif"
 ```
+
+- prompt: Specifies the prompt.
+- n-prompt: Specifies a negative prompt.
+- height: Specifies the height of the image.
+- width: Specifies the width of the image.
+- samples: Specifies the number of images to generate.
+- steps: Specifies the number of steps.
+- seed: Specifies the seed.
+- use-upscaler: Enables the upscaler to increase the image resolution.
+- fix-by-controlnet-tile: Specifies whether to use ControlNet 1.1 Tile. If enabled, it will repair broken images and generate high-resolution images. Only sd15 is supported.
+- output-format: Specifies the output format. Only avif and png are supported.
 
 ### 5. Deploy an application
 
