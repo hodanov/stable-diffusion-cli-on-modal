@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import io
-import os
+from pathlib import Path
 
 import PIL.Image
 from modal import Secret, enter, method
@@ -24,13 +24,12 @@ class SDXLTxt2Img:
         import yaml
 
         config = {}
-        with open("/config.yml") as file:
+        with Path("/config.yml").open() as file:
             config = yaml.safe_load(file)
-        self.__cache_path = os.path.join(BASE_CACHE_PATH, config["model"]["name"])
-        if os.path.exists(self.__cache_path):
-            print(f"The directory '{self.__cache_path}' exists.")
-        else:
-            print(f"The directory '{self.__cache_path}' does not exist.")
+        self.__cache_path = Path(BASE_CACHE_PATH) / config["model"]["name"]
+        if not Path.exists(self.__cache_path):
+            msg = f"The directory '{self.__cache_path}' does not exist."
+            raise ValueError(msg)
 
         self.__pipe = diffusers.StableDiffusionXLPipeline.from_pretrained(
             self.__cache_path,
