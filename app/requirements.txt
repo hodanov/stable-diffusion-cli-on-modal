@@ -1,6 +1,6 @@
 diffusers[torch]==0.31.0
 accelerate
-torch==2.4.1
+torch==2.5.1
 transformers==4.46.3
 xformers==0.0.28.post1
 
