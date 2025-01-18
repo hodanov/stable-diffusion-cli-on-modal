@@ -4,7 +4,7 @@ from pathlib import Path
 
 import diffusers
 from huggingface_hub import login
-from modal import App, Image, Mount, Secret
+from modal import App, Image, Secret
 
 BASE_CACHE_PATH = "/vol/cache"
 BASE_CACHE_PATH_LORA = "/vol/cache/lora"
@@ -177,12 +177,10 @@ def build_image() -> None:
 app = App("stable-diffusion-cli")
 base_stub = Image.from_dockerfile(
     path="Dockerfile",
-    context_mount=Mount.from_local_file("requirements.txt"),
 )
 app.image = base_stub.dockerfile_commands(
     "FROM base",
     "COPY config.yml /",
-    context_mount=Mount.from_local_file("config.yml"),
 ).run_function(
     build_image,
     secrets=[Secret.from_dotenv(__file__)],
