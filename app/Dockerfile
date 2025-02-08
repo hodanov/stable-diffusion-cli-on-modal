@@ -5,4 +5,4 @@ RUN apt-get update \
     && apt-get autoremove -y \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/* \
-    && pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu121 --no-cache-dir
+    && pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu126 --no-cache-dir
