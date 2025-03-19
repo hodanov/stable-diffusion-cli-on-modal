@@ -16,17 +16,23 @@ class Txt2ImgInterface(ABC):
 
 
 class SDXLTxt2Img(Txt2ImgInterface):
-    def __init__(self, prompts: Prompts, output_format: str, *, use_upscaler: bool) -> None:
+    def __init__(
+        self,
+        prompts: Prompts,
+        output_format: str,
+        *,
+        use_upscaler: bool,
+    ) -> None:
         self.__prompts = prompts
         self.__output_format = output_format
         self.__use_upscaler = use_upscaler
-        self.__run_inference = modal.Function.from_name(
+        self.__sdxl_txt2_img = modal.Cls.from_name(
             "stable-diffusion-cli",
-            "SDXLTxt2Img.run_inference",
+            "SDXLTxt2Img",
         )
 
     def run_inference(self, seed: Seed) -> list[bytes]:
-        return self.__run_inference.remote(
+        return self.__sdxl_txt2_img().run_inference.remote(
             prompt=self.__prompts.prompt,
             n_prompt=self.__prompts.n_prompt,
             height=self.__prompts.height,
@@ -51,13 +57,13 @@ class SD15Txt2Img(Txt2ImgInterface):
         self.__output_format = output_format
         self.__use_upscaler = use_upscaler
         self.__fix_by_controlnet_tile = fix_by_controlnet_tile
-        self.__run_inference = modal.Function.from_name(
+        self.__sd15_txt2_img = modal.Cls.from_name(
             "stable-diffusion-cli",
-            "SD15.run_txt2img_inference",
+            "SD15Txt2Img",
         )
 
     def run_inference(self, seed: Seed) -> list[bytes]:
-        return self.__run_inference.remote(
+        return self.__sd15_txt2_img().run_inference.remote(
             prompt=self.__prompts.prompt,
             n_prompt=self.__prompts.n_prompt,
             height=self.__prompts.height,
