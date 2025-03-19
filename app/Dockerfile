@@ -1,4 +1,4 @@
-FROM python:3.11.11-slim-bookworm
+FROM python:3.13.2-slim-bookworm
 COPY ./requirements.txt /
 RUN apt-get update \
     && apt-get install wget libgl1-mesa-glx libglib2.0-0 --no-install-recommends -y \
