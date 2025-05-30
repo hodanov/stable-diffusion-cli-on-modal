@@ -62,7 +62,12 @@ def main(
             )
             logger.info("Saved image to the: %s", saved_path)
         total_time = time.time() - start_time
-        logger.info("Sample %s, took %ss (%ss / image).", sample_index, total_time, (total_time) / len(images))
+        logger.info(
+            "Sample %s, took %ss (%ss / image).",
+            sample_index,
+            round(total_time, 3),
+            round(total_time / len(images), 3),
+        )
 
     saved_prompts_path = sd_output_manager.save_prompts()
     logger.info("Saved prompts: %s", saved_prompts_path)
