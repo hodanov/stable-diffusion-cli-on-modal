@@ -2,7 +2,7 @@
 
 # Stable Diffusion CLI on Modal
 
-This is a Diffusers-based script for running Stable Diffusion on [Modal](https://modal.com/). This script has no WebUI and only works with CLI. It can perform txt2img inference and has the ability to increase resolution using ControlNet Tile and Upscaler.
+This is a Diffusers-based script for running Stable Diffusion on [Modal](https://modal.com/). This script has no WebUI and only works with CLI. It can perform txt2img inference and has the ability to increase resolution using img2img and Upscaler.
 
 ## Features
 
@@ -10,7 +10,7 @@ This is a Diffusers-based script for running Stable Diffusion on [Modal](https:/
   ![example for txt2img](assets/20230902_tile_imgs.png)
   Available versions:
     - SDXL
-    - 1.5
+    - 1.5(Temporarily unavailable due to rewrite application)
 
 2. Upscaling
 
@@ -23,7 +23,7 @@ This is a Diffusers-based script for running Stable Diffusion on [Modal](https:/
 The app requires the following to run:
 
 - python: >= 3.11
-- modal: >= 0.73.114
+- modal: >= 1.0.3
 - A token for Modal.
 
 The `modal` is the Python library. In order to install that:
