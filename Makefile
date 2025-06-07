@@ -1,7 +1,7 @@
 .PHONY: app
 
 app:
-	cd ./app && modal deploy __main__.py
+	cd ./app && modal deploy app.py
 
 img_by_sd15_txt2img:
 	cd ./cmd && modal run txt2img_handler.py::main \

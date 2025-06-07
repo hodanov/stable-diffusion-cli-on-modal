@@ -1,6 +1,6 @@
 # Stable Diffusion CLI on Modal
 
-[Modal](https://modal.com/)上でStable Diffusionを動かすためのDiffusersベースのスクリプトです。WebUIは無く、CLIでのみ動作します。txt2imgの推論を実行することができ、ControlNet TileとUpscalerを利用した高解像度化の機能を備えています。
+[Modal](https://modal.com/)上でStable Diffusionを動かすためのDiffusersベースのスクリプトです。WebUIは無く、CLIでのみ動作します。txt2imgの推論を実行することができ、img2imgとUpscalerを利用した高解像度化の機能を備えています。
 
 ## このスクリプトでできること
 
@@ -8,7 +8,7 @@
   ![txt2imgでの生成画像例](assets/20230902_tile_imgs.png)
   利用可能なバージョン:
     - SDXL
-    - 1.5
+    - 1.5(コードをリライト中のため一時的に利用できない状態です)
 
 2. アップスケーラーとControlNet Tileを利用した高解像度な画像を生成することができます。
 
@@ -23,7 +23,7 @@
 このスクリプトを実行するには最低限下記のツールが必要です:
 
 - python: >= 3.11
-- modal: >= 0.73.114
+- modal: >= 1.0.3
 - ModalのAPIトークン
 - Hagging FaceのAPIトークン（非公開のリポジトリのモデルを参照したい場合に必須）
 
