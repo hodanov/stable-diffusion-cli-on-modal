@@ -19,7 +19,6 @@ def main(
     steps: int = 20,
     seed: int = -1,
     use_upscaler: str = "False",
-    fix_by_controlnet_tile: str = "True",
     output_format: str = "png",
 ) -> None:
     """This function is the entrypoint for the Runway CLI.
@@ -45,7 +44,6 @@ def main(
         prompts,
         output_format,
         use_upscaler=use_upscaler == "True",
-        fix_by_controlnet_tile=fix_by_controlnet_tile == "True",
     )
 
     for sample_index in range(samples):
