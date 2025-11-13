@@ -1,14 +1,13 @@
 # Stable Diffusion CLI on Modal
 
-[Modal](https://modal.com/)上でStable Diffusionを動かすためのDiffusersベースのスクリプトです。WebUIは無く、CLIでのみ動作します。txt2imgの推論を実行することができ、img2imgとUpscalerを利用した高解像度化の機能を備えています。
+[Modal](https://modal.com/)上でStable Diffusionを動かすためのDiffusersベースのスクリプトです。WebUIは無く、CLIでのみ動作します。txt2imgの推論と、img2imgとUpscalerを利用した高解像度化の機能を備えています。
 
 ## このスクリプトでできること
 
 1. txt2imgまたはimt2imgによる画像生成ができます。
   ![txt2imgでの生成画像例](assets/20230902_tile_imgs.png)
   利用可能なバージョン:
-    - SDXL
-    - 1.5(コードをリライト中のため一時的に利用できない状態です)
+    - SDXL（のみ）
 
 2. アップスケーラーとControlNet Tileを利用した高解像度な画像を生成することができます。
 
@@ -48,8 +47,8 @@ modal token new
 1. リポジトリをgit clone
 2. ./app/config.example.yml を ./app/config.ymlにコピー
 3. Makefile を開いてプロンプトを設定
-4. make appをコマンドラインで実行(Modal上にアプリケーションが構築されます)
-5. make img_by_sd15_txt2img(スクリプトが起動します)
+4. `make app` を実行（Modal上にアプリケーションをデプロイ）
+5. `make img_by_sdxl_txt2img` を実行（スクリプトが起動）
 
 ## ディレクトリ構成
 
@@ -62,14 +61,11 @@ modal token new
 │   ├── outputs/                # Images are outputted this directory.
 ...
 │   └── txt2img_handler.py         # A script to run txt2img inference.
-└── app/                # A directory with config files.
-    ├── __main__.py             # A main script to run inference.
-    ├── Dockerfile              # To build a base image.
-    ├── config.yml              # To set a model, vae and some tools.
-    ├── requirements.txt
-    ├── setup.py                # Build an application to deploy on Modal.
-    ├── stable_diffusion_1_5.py # There is a class to run inference about sd15.
-    └── stable_diffusion_xl.py  # There is a class to run inference about sdxl.
+└── app/                # コンフィグとModalアプリ
+    ├── app.py                  # Modalアプリ本体（SDXL）
+    ├── Dockerfile              # ベースイメージビルド用
+    ├── config.yml              # モデル/VAE等の設定
+    └── requirements.txt
 ```
 
 ## 使い方の詳細
@@ -98,17 +94,15 @@ HUGGING_FACE_TOKEN="ここにHuggingFaceのトークンを記載する"
 下記のように、nameにモデル名、urlにSafetensorsファイルがあるURLを指定します。
 
 ```yml
-# 設定例
-version: "sd15" # Specify 'sd15' or 'sdxl'.
+# 設定例（SDXL のみ対応）
+version: "sdxl"
 model:
-  name: stable-diffusion-1-5
-  url: https://huggingface.co/runwayml/stable-diffusion-v1-5/blob/main/v1-5-pruned.safetensors # Specify URL for the safetensor file.
+  name: stable-diffusion-xl
+  url: https://huggingface.co/replace/with/your/sdxl/model.safetensors
 vae:
-  name: sd-vae-ft-mse
-  url: https://huggingface.co/stabilityai/sd-vae-ft-mse-original/blob/main/vae-ft-mse-840000-ema-pruned.safetensors
-controlnets:
-  - name: control_v11f1e_sd15_tile
-    repo_id: lllyasviel/control_v11f1e_sd15_tile
+  # 任意（カスタムVAEを使う場合のみ）
+  name: your-sdxl-vae
+  url: https://huggingface.co/replace/with/your/sdxl/vae.safetensors
 ```
 
 LoRAは下記のように指定します。
@@ -156,7 +150,6 @@ img_by_sdxl_txt2img:
 - steps: ステップ数を指定します。
 - seed: seedを指定します。
 - use-upscaler: 画像の解像度を上げるためのアップスケーラーを有効にします。
-- fix-by-controlnet-tile: ControlNet 1.1 Tileの利用有無を指定します。有効にすると、崩れた画像を修復しつつ、高解像度な画像を生成します。sd15のみ対応。
 - output-format: 出力フォーマットを指定します。avifとpngのみ対応。
 
 ### 5. アプリケーションをデプロイする
@@ -172,9 +165,5 @@ make app
 下記のコマンドでtxt2img推論が実行されます。
 
 ```bash
-make img_by_sd15_txt2img
-
-or
-
 make img_by_sdxl_txt2img
 ```

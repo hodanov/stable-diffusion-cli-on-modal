@@ -2,15 +2,14 @@
 
 # Stable Diffusion CLI on Modal
 
-This is a Diffusers-based script for running Stable Diffusion on [Modal](https://modal.com/). This script has no WebUI and only works with CLI. It can perform txt2img inference and has the ability to increase resolution using img2img and Upscaler.
+This is a Diffusers-based script for running Stable Diffusion on [Modal](https://modal.com/). This script has no WebUI and only works with CLI. It performs txt2img inference and can upscale/refine outputs.
 
 ## Features
 
 1. Image generation using txt2img or img2img.
   ![example for txt2img](assets/20230902_tile_imgs.png)
-  Available versions:
-    - SDXL
-    - 1.5(Temporarily unavailable due to rewrite application)
+  Available version:
+    - SDXL (only)
 
 2. Upscaling
 
@@ -48,7 +47,7 @@ To use the script, execute the below.
 2. Copy `./app/config.sample.yml` to `./app/config.yml`
 3. Open the Makefile and set prompts.
 4. Execute `make app` command. An application will be deployed to Modal.
-5. Execute `make img_by_sd15_txt2img` command.
+5. Execute `make img_by_sdxl_txt2img` command.
 
 Images are generated and output to the `outputs/` directory.
 
@@ -63,14 +62,11 @@ Images are generated and output to the `outputs/` directory.
 │   ├── outputs/                # Images are outputted this directory.
 ...
 │   └── txt2img_handler.py         # A script to run txt2img inference.
-└── app/                # A directory with config files.
-    ├── __main__.py             # A main script to run inference.
+└── app/                # A directory with config and Modal app.
+    ├── app.py                  # Modal app and inference implementation (SDXL)
     ├── Dockerfile              # To build a base image.
-    ├── config.yml              # To set a model, vae and some tools.
-    ├── requirements.txt
-    ├── setup.py                # Build an application to deploy on Modal.
-    ├── stable_diffusion_1_5.py # There is a class to run inference about sd15.
-    └── stable_diffusion_xl.py  # There is a class to run inference about sdxl.
+    ├── config.yml              # To set a model, VAE and optional tools.
+    └── requirements.txt
 ```
 
 ## How to use
@@ -98,16 +94,14 @@ Add the model used for inference. Use the Safetensors file as is. VAE, LoRA, and
 
 ```yml
 # ex)
-version: "sd15" # Specify 'sd15' or 'sdxl'.
+version: "sdxl"
 model:
-  name: stable-diffusion-1-5
-  url: https://huggingface.co/runwayml/stable-diffusion-v1-5/blob/main/v1-5-pruned.safetensors # Specify URL for the safetensor file.
+  name: stable-diffusion-xl
+  url: https://huggingface.co/replace/with/your/sdxl/model.safetensors # Safetensors file URL.
 vae:
-  name: sd-vae-ft-mse
-  url: https://huggingface.co/stabilityai/sd-vae-ft-mse-original/blob/main/vae-ft-mse-840000-ema-pruned.safetensors
-controlnets:
-  - name: control_v11f1e_sd15_tile
-    repo_id: lllyasviel/control_v11f1e_sd15_tile
+  # Optional for SDXL; keep if you provide a custom VAE.
+  name: your-sdxl-vae
+  url: https://huggingface.co/replace/with/your/sdxl/vae.safetensors
 ```
 
 If you want to use LoRA and Textual Inversion, configure as follows.
@@ -155,7 +149,6 @@ img_by_sdxl_txt2img:
 - steps: Specifies the number of steps.
 - seed: Specifies the seed.
 - use-upscaler: Enables the upscaler to increase the image resolution.
-- fix-by-controlnet-tile: Specifies whether to use ControlNet 1.1 Tile. If enabled, it will repair broken images and generate high-resolution images. Only sd15 is supported.
 - output-format: Specifies the output format. Only avif and png are supported.
 
 ### 5. Deploy an application
@@ -171,10 +164,6 @@ make app
 The txt2img inference is executed with the following command.
 
 ```bash
-make img_by_sd15_txt2img
-
-or
-
 make img_by_sdxl_txt2img
 ```
 

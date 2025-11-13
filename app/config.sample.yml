@@ -6,13 +6,16 @@
 
 ##########
 # You can use a diffusers model and VAE on hugging face.
-version: "sd15" # 'sd15' or 'sdxl'.
+version: "sdxl" # Only 'sdxl' is supported now.
 model:
-  name: stable-diffusion-1-5
-  url: https://huggingface.co/runwayml/stable-diffusion-v1-5/blob/main/v1-5-pruned.safetensors
-vae:
-  name: sd-vae-ft-mse
-  url: https://huggingface.co/stabilityai/sd-vae-ft-mse-original/blob/main/vae-ft-mse-840000-ema-pruned.safetensors
+  name: stable-diffusion-xl
+  url: https://huggingface.co/replace/with/your/sdxl/model.safetensors
+##########
+# vae:
+#   Optional for SDXL; keep if you provide a custom VAE.
+#   name: your-sdxl-vae
+#   url: https://huggingface.co/replace/with/your/sdxl/vae.safetensors
+
 ##########
 # Add LoRA if you want to use one. You can use a download url such as the below.
 # ex)
@@ -30,6 +33,6 @@ vae:
 #     url: https://hogehoge/xxxx
 #   - name: fugafuga
 #     url: https://fugafuga/xxxx
-controlnets:
-  - name: control_v11f1e_sd15_tile
-    repo_id: lllyasviel/control_v11f1e_sd15_tile
+# controlnets:
+#   - name: your-controlnet
+#     repo_id: replace/with/your/sdxl-capable-controlnet

@@ -50,40 +50,6 @@ class StableDiffusionCLISetupSDXL(StableDiffusionCLISetupInterface):
         pipe.save_pretrained(cache_path, safe_serialization=True)
 
 
-class StableDiffusionCLISetupSD15(StableDiffusionCLISetupInterface):
-    def __init__(self, config: dict, token: str) -> None:
-        if config.get("version") != "sd15":
-            msg = "Invalid version. Must be 'sd15'."
-            raise ValueError(msg)
-
-        if config.get("model") is None:
-            msg = "Model is required. Please provide a model in config.yml."
-            raise ValueError(msg)
-
-        self.__model_name: str = config["model"]["name"]
-        self.__model_url: str = config["model"]["url"]
-
-        if token != "":
-            login(token)
-        self.__token: str = token
-
-    def download_model(self) -> None:
-        cache_path = Path(BASE_CACHE_PATH) / self.__model_name
-        pipe = diffusers.StableDiffusionPipeline.from_single_file(
-            pretrained_model_link_or_path=self.__model_url,
-            token=self.__token,
-            cache_dir=cache_path,
-        )
-        pipe.save_pretrained(cache_path, safe_serialization=True)
-        self.__download_upscaler()
-
-    def __download_upscaler(self) -> None:
-        upscaler = diffusers.StableDiffusionLatentUpscalePipeline.from_pretrained(
-            "stabilityai/sd-x2-latent-upscaler",
-        )
-        upscaler.save_pretrained(BASE_CACHE_PATH_UPSCALER, safe_serialization=True)
-
-
 class CommonSetup:
     def __init__(self, config: dict, token: str) -> None:
         self.__token: str = token
@@ -165,12 +131,10 @@ def build_image() -> None:
 
     stable_diffusion_setup: StableDiffusionCLISetupInterface
     match config.get("version"):
-        case "sd15":
-            stable_diffusion_setup = StableDiffusionCLISetupSD15(config, token)
         case "sdxl":
             stable_diffusion_setup = StableDiffusionCLISetupSDXL(config, token)
         case _:
-            msg = f"Invalid version: {config.get('version')}. Must be 'sd15' or 'sdxl'."
+            msg = f"Invalid version: {config.get('version')}. Only 'sdxl' is supported now."
             raise ValueError(msg)
 
     stable_diffusion_setup.download_model()
@@ -183,7 +147,6 @@ base_stub = Image.from_dockerfile(
     path="Dockerfile",
 )
 app.image = base_stub.dockerfile_commands(
-    "FROM base",
     "COPY config.yml /",
 ).run_function(
     build_image,
@@ -247,7 +210,9 @@ class SDXLTxt2Img:
         if token_size > max_length:
             max_embeddings_multiples = token_size // max_length + 1
 
-        print(f"token_size: {token_size}, max_embeddings_multiples: {max_embeddings_multiples}")
+        print(
+            f"token_size: {token_size}, max_embeddings_multiples: {max_embeddings_multiples}",
+        )
 
         return max_embeddings_multiples
 
