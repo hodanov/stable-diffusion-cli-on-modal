@@ -147,7 +147,6 @@ base_stub = Image.from_dockerfile(
     path="Dockerfile",
 )
 app.image = base_stub.dockerfile_commands(
-    "FROM base",
     "COPY config.yml /",
 ).run_function(
     build_image,
@@ -212,7 +211,7 @@ class SDXLTxt2Img:
             max_embeddings_multiples = token_size // max_length + 1
 
         print(
-            f"token_size: {token_size}, max_embeddings_multiples: {max_embeddings_multiples}"
+            f"token_size: {token_size}, max_embeddings_multiples: {max_embeddings_multiples}",
         )
 
         return max_embeddings_multiples
