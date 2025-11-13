@@ -1,6 +1,6 @@
 # Stable Diffusion CLI on Modal
 
-[Modal](https://modal.com/)上でStable Diffusionを動かすためのDiffusersベースのスクリプトだよ。WebUIは無く、CLIでのみ動作。txt2imgの推論と、アップスケール/リファインでの高解像度化に対応してる。
+[Modal](https://modal.com/)上でStable Diffusionを動かすためのDiffusersベースのスクリプトです。WebUIは無く、CLIでのみ動作します。txt2imgの推論と、img2imgとUpscalerを利用した高解像度化の機能を備えています。
 
 ## このスクリプトでできること
 
@@ -9,7 +9,7 @@
   利用可能なバージョン:
     - SDXL（のみ）
 
-2. アップスケーラーを使って高解像度化できるよ（SDXL）。
+2. アップスケーラーとControlNet Tileを利用した高解像度な画像を生成することができます。
 
 | ベース画像                                                       | アップスケール後                                                 |
 | ---------------------------------------------------------------- | ---------------------------------------------------------------- |
@@ -162,7 +162,7 @@ make app
 
 ### 6. 推論を実行する
 
-下記のコマンドでtxt2img推論が実行されるよ。
+下記のコマンドでtxt2img推論が実行されます。
 
 ```bash
 make img_by_sdxl_txt2img

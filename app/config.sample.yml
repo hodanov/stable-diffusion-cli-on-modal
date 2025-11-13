@@ -10,10 +10,12 @@ version: "sdxl" # Only 'sdxl' is supported now.
 model:
   name: stable-diffusion-xl
   url: https://huggingface.co/replace/with/your/sdxl/model.safetensors
-vae:
-  # Optional for SDXL; keep if you provide a custom VAE.
-  name: your-sdxl-vae
-  url: https://huggingface.co/replace/with/your/sdxl/vae.safetensors
+##########
+# vae:
+#   Optional for SDXL; keep if you provide a custom VAE.
+#   name: your-sdxl-vae
+#   url: https://huggingface.co/replace/with/your/sdxl/vae.safetensors
+
 ##########
 # Add LoRA if you want to use one. You can use a download url such as the below.
 # ex)
