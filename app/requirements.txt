@@ -2,7 +2,7 @@ torch==2.8.0
 diffusers[torch]==0.35.2
 accelerate==1.12.0
 transformers==4.57.3
-xformers==0.0.32.post2
+xformers==0.0.33.post2
 
 invisible_watermark # To help viewers identify the images as machine-generated.
 safetensors==0.7.0 # To store tensors safely.
