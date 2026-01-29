@@ -48,6 +48,7 @@ To use the script, execute the below.
 3. Open the Makefile and set prompts.
 4. Execute `make app` command. An application will be deployed to Modal.
 5. Execute `make img_by_sdxl_txt2img` command.
+6. Execute `make vid_by_wan_ti2v` command (TI2V video generation).
 
 Images are generated and output to the `outputs/` directory.
 
@@ -62,6 +63,7 @@ Images are generated and output to the `outputs/` directory.
 │   ├── outputs/                # Images are outputted this directory.
 ...
 │   └── txt2img_handler.py         # A script to run txt2img inference.
+│   └── ti2v_handler.py            # A script to run TI2V inference.
 └── app/                # A directory with config and Modal app.
     ├── app.py                  # Modal app and inference implementation (SDXL)
     ├── Dockerfile              # To build a base image.

@@ -15,7 +15,7 @@
 | ---------------------------------------------------------------- | ---------------------------------------------------------------- |
 | <img src="assets/20230708204347_1172778945_0_0.png" width="300"> | <img src="assets/20230708204347_1172778945_0_2.png" width="300"> |
 
-3. その他、LoRAとTextual inversionを利用できます。
+1. その他、LoRAとTextual inversionを利用できます。
 
 ## 必須項目
 
@@ -49,6 +49,7 @@ modal token new
 3. Makefile を開いてプロンプトを設定
 4. `make app` を実行（Modal上にアプリケーションをデプロイ）
 5. `make img_by_sdxl_txt2img` を実行（スクリプトが起動）
+6. `make vid_by_wan_ti2v` を実行（TI2Vの動画生成）
 
 ## ディレクトリ構成
 
@@ -61,6 +62,7 @@ modal token new
 │   ├── outputs/                # Images are outputted this directory.
 ...
 │   └── txt2img_handler.py         # A script to run txt2img inference.
+│   └── ti2v_handler.py            # A script to run TI2V inference.
 └── app/                # コンフィグとModalアプリ
     ├── app.py                  # Modalアプリ本体（SDXL）
     ├── Dockerfile              # ベースイメージビルド用
