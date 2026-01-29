@@ -33,7 +33,7 @@ class SDXLTxt2Img(Txt2ImgInterface):
         self.__output_format = output_format
         self.__use_upscaler = use_upscaler
         self.__sdxl_txt2_img = modal.Cls.from_name(
-            "stable-diffusion-cli",
+            "sdxl-cli",
             "SDXLTxt2Img",
         )
 
@@ -66,7 +66,7 @@ class WanTI2V(Ti2VInterface):
         self.__guidance_scale = guidance_scale
         self.__use_image_aspect = use_image_aspect
         self.__wan_ti2v = modal.Cls.from_name(
-            "stable-diffusion-cli",
+            "wan-i2v-cli",
             "WanTI2V",
         )
 

@@ -47,9 +47,10 @@ modal token new
 1. リポジトリをgit clone
 2. ./app/config.example.yml を ./app/config.ymlにコピー
 3. Makefile を開いてプロンプトを設定
-4. `make app` を実行（Modal上にアプリケーションをデプロイ）
-5. `make img_by_sdxl_txt2img` を実行（スクリプトが起動）
-6. `make vid_by_wan_ti2v` を実行（TI2Vの動画生成）
+4. `make app_img` を実行（SDXL用アプリをModal上にデプロイ）
+5. `make app_vid` を実行（Wan I2V用アプリをModal上にデプロイ）
+6. `make img_by_sdxl_txt2img` を実行（スクリプトが起動）
+7. `make vid_by_wan_ti2v` を実行（TI2Vの動画生成）
 
 ## ディレクトリ構成
 
@@ -64,7 +65,8 @@ modal token new
 │   └── txt2img_handler.py         # A script to run txt2img inference.
 │   └── ti2v_handler.py            # A script to run TI2V inference.
 └── app/                # コンフィグとModalアプリ
-    ├── app.py                  # Modalアプリ本体（SDXL）
+    ├── app_img.py              # Modalアプリ本体（SDXL）
+    ├── app_vid.py              # Modalアプリ本体（Wan I2V）
     ├── Dockerfile              # ベースイメージビルド用
     ├── config.yml              # モデル/VAE等の設定
     └── requirements.txt
