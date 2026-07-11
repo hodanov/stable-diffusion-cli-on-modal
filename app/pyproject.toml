@@ -5,7 +5,7 @@ requires-python = "==3.11.*"
 dependencies = [
   "accelerate>=1.14.0",
   "controlnet-aux",
-  "diffusers[torch]>=0.37.0",
+  "diffusers[torch]>=0.39.0",
   "ftfy",
   "imageio",
   "imageio-ffmpeg",
@@ -16,6 +16,7 @@ dependencies = [
   "pyyaml",  # To read the configuration file by written YAML.
   "safetensors>=0.8.0",  # To store tensors safely.
   "torch>=2.12.0",
+  "torchvision",  # Direct dependency so tool.uv.sources pins it to the cu126 index.
   "transformers>=5.12.1",
   "xformers>=0.0.35",
 ]
@@ -30,4 +31,5 @@ explicit = true
 
 [tool.uv.sources]
 torch = { index = "pytorch-cu126" }
+torchvision = { index = "pytorch-cu126" }
 xformers = { index = "pytorch-cu126" }
