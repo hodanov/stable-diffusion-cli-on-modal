@@ -9,10 +9,14 @@ updates:
     directory: "./app" # Location of package manifests
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 14
   - package-ecosystem: "docker"
     directory: "./app"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 14
     groups:
       docker-dependencies:
         patterns:
@@ -21,6 +25,8 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    cooldown:
+      default-days: 14
     groups:
       workflow-dependencies:
         patterns:
