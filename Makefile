@@ -14,6 +14,8 @@ prep_sdxl:
 prep_wan_i2v:
 	cd ./app && uv run --project .. modal run app_vid.py::prepare_wan_i2v
 
+switch_sdxl: prep_sdxl app_img
+
 img_by_sdxl_txt2img:
 	cd ./cmd && uv run modal run txt2img_handler.py::main \
 	--version "sdxl" \

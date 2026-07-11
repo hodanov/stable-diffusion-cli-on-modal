@@ -208,6 +208,8 @@ To add a new model to the volume:
 2. Execute `make prep_sdxl`. The new model will be downloaded into the `sdxl-models` volume. Existing models are kept, so multiple models can live in the volume side by side.
 3. Execute `make app_img`. This redeploys the app so the container picks up the new `config.yml` (no model download runs, only a quick layer update).
 
+Steps 2 and 3 can be run at once with `make switch_sdxl`.
+
 To switch to a model that is already in the volume, just edit `./app/config.yml` and execute `make app_img`. Running `make prep_sdxl` again is harmless: the download is skipped when the model already exists.
 
 You can inspect or clean up the volume with the Modal CLI:
