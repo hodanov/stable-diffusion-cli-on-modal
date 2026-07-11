@@ -10,6 +10,7 @@ dependencies = [
   "imageio",
   "imageio-ffmpeg",
   "invisible-watermark",  # To help viewers identify the images as machine-generated.
+  "opencv-python-headless",  # Replaces the GUI build of opencv-python so the image needs no apt-installed libGL/libglib.
   "peft",
   "pillow",
   "pillow-avif-plugin",  # To save images in AVIF format.
@@ -22,6 +23,10 @@ dependencies = [
 
 [tool.uv]
 package = false
+override-dependencies = [
+  # Exclude the GUI build of opencv pulled in by invisible-watermark; opencv-python-headless provides cv2 instead.
+  "opencv-python; sys_platform == 'never'",
+]
 
 [[tool.uv.index]]
 name = "pytorch-cu126"
