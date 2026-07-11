@@ -8,6 +8,9 @@ on:
       - app/uv.lock
       - .github/workflows/docker_image_ci.yml
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
