@@ -125,7 +125,7 @@ def build_image() -> None:
     """
     import yaml
 
-    token: str = os.environ["HUGGING_FACE_TOKEN"]
+    token: str = os.environ.get("HUGGING_FACE_TOKEN", "")
     with open("/config.yml") as file:
         config: dict = yaml.safe_load(file)
 
@@ -142,7 +142,7 @@ def build_image() -> None:
     common_setup.download_setup_files()
 
 
-app = App("stable-diffusion-cli")
+app = App("sdxl-cli")
 base_stub = Image.from_dockerfile(
     path="Dockerfile",
 )

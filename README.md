@@ -7,9 +7,9 @@ This is a Diffusers-based script for running Stable Diffusion on [Modal](https:/
 ## Features
 
 1. Image generation using txt2img or img2img.
-  ![example for txt2img](assets/20230902_tile_imgs.png)
-  Available version:
-    - SDXL (only)
+   ![example for txt2img](assets/20230902_tile_imgs.png)
+   Available version:
+   - SDXL (only)
 
 2. Upscaling
 
@@ -21,23 +21,29 @@ This is a Diffusers-based script for running Stable Diffusion on [Modal](https:/
 
 The app requires the following to run:
 
-- python: >= 3.11
-- modal: >= 1.0.3
+- python: >= 3.12
+- [uv](https://docs.astral.sh/uv/) (manages the virtual environment and dependencies)
 - A token for Modal.
 
-The `modal` is the Python library. In order to install that:
+This project uses `uv` to pin the local dependencies (mainly the `modal` CLI) via `pyproject.toml` and `uv.lock`. After installing `uv`, create the environment:
 
 ```bash
-pip install modal
+# Install uv (see https://docs.astral.sh/uv/getting-started/installation/)
+brew install uv
+
+# Create .venv and install the locked dependencies
+uv sync
 ```
+
+The heavy ML libraries (torch, diffusers, etc.) live in the Modal container image (`app/requirements.txt`) and are not installed locally — running the CLI only needs `modal`.
 
 And you need a modal token to use this script:
 
 ```bash
-modal token new
+uv run modal token new
 ```
 
-Please see [the documentation of Modal](https://modal.com/docs/guide) for modals and tokens.
+All `make` targets run through `uv run`, so you don't need to activate the venv manually. Please see [the documentation of Modal](https://modal.com/docs/guide) for modals and tokens.
 
 ## Getting Started
 
@@ -46,8 +52,11 @@ To use the script, execute the below.
 1. git clone the repository.
 2. Copy `./app/config.sample.yml` to `./app/config.yml`
 3. Open the Makefile and set prompts.
-4. Execute `make app` command. An application will be deployed to Modal.
-5. Execute `make img_by_sdxl_txt2img` command.
+4. Execute `make app_img` command. An application for SDXL will be deployed to Modal.
+5. Execute `make app_vid` command. An application for Wan I2V will be deployed to Modal.
+6. Execute `make prep_wan_i2v` command. The Wan I2V model will be downloaded into a Modal Volume.
+7. Execute `make img_by_sdxl_txt2img` command.
+8. Execute `make vid_by_wan_ti2v` command (TI2V video generation).
 
 Images are generated and output to the `outputs/` directory.
 
@@ -62,8 +71,10 @@ Images are generated and output to the `outputs/` directory.
 │   ├── outputs/                # Images are outputted this directory.
 ...
 │   └── txt2img_handler.py         # A script to run txt2img inference.
+│   └── ti2v_handler.py            # A script to run TI2V inference.
 └── app/                # A directory with config and Modal app.
-    ├── app.py                  # Modal app and inference implementation (SDXL)
+    ├── app_img.py              # Modal app and inference implementation (SDXL)
+    ├── app_vid.py              # Modal app and inference implementation (Wan I2V)
     ├── Dockerfile              # To build a base image.
     ├── config.yml              # To set a model, VAE and optional tools.
     └── requirements.txt
@@ -104,6 +115,19 @@ vae:
   url: https://huggingface.co/replace/with/your/sdxl/vae.safetensors
 ```
 
+For Wan I2V, configure the model repository under `wan_i2v`:
+
+```yml
+wan_i2v:
+  model:
+    name: wan-i2v-a14b
+    # Used when safetensors_url is not set.
+    # If omitted, Wan-AI/Wan2.2-I2V-A14B-Diffusers is used.
+    repo_id: Wan-AI/Wan2.2-I2V-A14B-Diffusers
+    # Optional: if provided, this is prioritized over repo_id weights.
+    # safetensors_url: https://huggingface.co/user/repo/resolve/main/your.safetensors
+```
+
 If you want to use LoRA and Textual Inversion, configure as follows.
 
 ```yml
@@ -129,7 +153,7 @@ Set the prompt to Makefile.
 ```makefile
 # ex)
 img_by_sdxl_txt2img:
-  cd ./cmd && modal run txt2img_handler.py::main \
+  cd ./cmd && uv run modal run txt2img_handler.py::main \
   --version "sdxl" \
   --prompt "A dog is running on the grass" \
   --n-prompt "" \

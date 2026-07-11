@@ -87,6 +87,110 @@ class Prompts:
         return self.__steps
 
 
+class VideoPrompts:
+    def __init__(
+        self,
+        prompt: str,
+        n_prompt: str,
+        height: int,
+        width: int,
+        samples: int,
+        steps: int,
+        num_frames: int,
+        fps: int,
+        guidance_scale: float,
+        use_image_aspect: bool,
+        image_path: str,
+    ) -> None:
+        if prompt == "":
+            msg = "prompt should not be empty."
+            raise ValueError(msg)
+
+        if height <= 0:
+            msg = "height should be positive."
+            raise ValueError(msg)
+
+        if width <= 0:
+            msg = "width should be positive."
+            raise ValueError(msg)
+
+        if samples <= 0:
+            msg = "samples should be positive."
+            raise ValueError(msg)
+
+        if steps <= 0:
+            msg = "steps should be positive."
+            raise ValueError(msg)
+
+        if num_frames <= 0:
+            msg = "num_frames should be positive."
+            raise ValueError(msg)
+
+        if fps <= 0:
+            msg = "fps should be positive."
+            raise ValueError(msg)
+
+        if image_path == "":
+            msg = "image_path should not be empty."
+            raise ValueError(msg)
+
+        self.__prompt = prompt
+        self.__n_prompt = n_prompt
+        self.__height = height
+        self.__width = width
+        self.__samples = samples
+        self.__steps = steps
+        self.__num_frames = num_frames
+        self.__fps = fps
+        self.__guidance_scale = guidance_scale
+        self.__use_image_aspect = use_image_aspect
+        self.__image_path = image_path
+
+    @property
+    def prompt(self) -> str:
+        return self.__prompt
+
+    @property
+    def n_prompt(self) -> str:
+        return self.__n_prompt
+
+    @property
+    def height(self) -> int:
+        return self.__height
+
+    @property
+    def width(self) -> int:
+        return self.__width
+
+    @property
+    def samples(self) -> int:
+        return self.__samples
+
+    @property
+    def steps(self) -> int:
+        return self.__steps
+
+    @property
+    def num_frames(self) -> int:
+        return self.__num_frames
+
+    @property
+    def fps(self) -> int:
+        return self.__fps
+
+    @property
+    def guidance_scale(self) -> float:
+        return self.__guidance_scale
+
+    @property
+    def use_image_aspect(self) -> bool:
+        return self.__use_image_aspect
+
+    @property
+    def image_path(self) -> str:
+        return self.__image_path
+
+
 class OutputDirectory:
     def __init__(self) -> None:
         self.__output_directory_name = "outputs"
@@ -114,8 +218,7 @@ class StableDiffusionOutputManger:
         prompts_filename = time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
         output_path = f"{self.__output_directory}/prompts_{prompts_filename}.txt"
         with Path(output_path).open("wb") as file:
-            for key, value in vars(self.__prompts).items():
-                file.write(f"{key} = {value!r}\n".encode())
+            file.writelines(f"{key} = {value!r}\n".encode() for key, value in vars(self.__prompts).items())
 
         return output_path
 
@@ -133,5 +236,28 @@ class StableDiffusionOutputManger:
         output_path = f"{self.__output_directory}/{filename}"
         with Path(output_path).open("wb") as file:
             file.write(image)
+
+        return output_path
+
+
+class VideoOutputManager:
+    def __init__(self, prompts: VideoPrompts, output_directory: Path) -> None:
+        self.__prompts = prompts
+        self.__output_directory = output_directory
+
+    def save_prompts(self) -> str:
+        prompts_filename = time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
+        output_path = f"{self.__output_directory}/prompts_{prompts_filename}.txt"
+        with Path(output_path).open("wb") as file:
+            file.writelines(f"{key} = {value!r}\n".encode() for key, value in vars(self.__prompts).items())
+
+        return output_path
+
+    def save_video(self, video: bytes, seed: int, i: int) -> str:
+        formatted_time = time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
+        filename = f"{formatted_time}_{seed}_{i}.mp4"
+        output_path = f"{self.__output_directory}/{filename}"
+        with Path(output_path).open("wb") as file:
+            file.write(video)
 
         return output_path

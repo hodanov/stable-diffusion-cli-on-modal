@@ -36,3 +36,14 @@ model:
 # controlnets:
 #   - name: your-controlnet
 #     repo_id: replace/with/your/sdxl-capable-controlnet
+
+##########
+# Wan I2V model settings.
+wan_i2v:
+  model:
+    name: wan-i2v-a14b
+    # repo_id is used when safetensors_url is not set.
+    # If omitted, Wan-AI/Wan2.2-I2V-A14B-Diffusers is used.
+    repo_id: Wan-AI/Wan2.2-I2V-A14B-Diffusers
+    # Optional: if provided, this is prioritized over repo_id weights.
+    # safetensors_url: https://huggingface.co/user/repo/resolve/main/your.safetensors

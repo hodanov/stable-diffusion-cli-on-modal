@@ -10,5 +10,8 @@ controlnet_aux
 
 Pillow
 pillow-avif-plugin # To save images in AVIF format.
+imageio
+imageio-ffmpeg
+ftfy
 pyyaml # To read the configuration file by written YAML.
 peft
