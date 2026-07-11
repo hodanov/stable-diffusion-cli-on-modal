@@ -26,7 +26,7 @@ updates:
         patterns:
           - "*"
   - package-ecosystem: "docker"
-    directory: "./app"
+    directory: "/app"
     schedule:
       interval: "weekly"
     cooldown:
