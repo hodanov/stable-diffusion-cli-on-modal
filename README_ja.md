@@ -5,9 +5,9 @@
 ## このスクリプトでできること
 
 1. txt2imgまたはimt2imgによる画像生成ができます。
-  ![txt2imgでの生成画像例](assets/20230902_tile_imgs.png)
-  利用可能なバージョン:
-    - SDXL（のみ）
+   ![txt2imgでの生成画像例](assets/20230902_tile_imgs.png)
+   利用可能なバージョン:
+   - SDXL（のみ）
 
 2. アップスケーラーとControlNet Tileを利用した高解像度な画像を生成することができます。
 
@@ -21,24 +21,30 @@
 
 このスクリプトを実行するには最低限下記のツールが必要です:
 
-- python: >= 3.11
-- modal: >= 1.0.3
+- python: >= 3.12
+- [uv](https://docs.astral.sh/uv/)（仮想環境と依存ライブラリの管理に使用）
 - ModalのAPIトークン
 - Hagging FaceのAPIトークン（非公開のリポジトリのモデルを参照したい場合に必須）
 
-`modal`はModalをCLIから操作するためのPythonライブラリです。下記のようにインストールします:
+本プロジェクトは`uv`でローカルの依存ライブラリ（主に`modal` CLI）を`pyproject.toml`と`uv.lock`で固定管理します。`uv`をインストールした上で、下記で環境を作成します:
 
 ```bash
-pip install modal
+# uv のインストール（https://docs.astral.sh/uv/getting-started/installation/ を参照）
+brew install uv
+
+# .venv を作成し、ロックされた依存関係をインストール
+uv sync
 ```
 
-And you need a modal token to use this script:
+torchやdiffusersなどの重いMLライブラリはModalコンテナのイメージ側（`app/requirements.txt`）に入るため、ローカルにはインストールされません。CLIの実行に必要なのは`modal`のみです。
+
+Modalのトークンも必要です:
 
 ```bash
-modal token new
+uv run modal token new
 ```
 
-詳細は[Modalのドキュメント](https://modal.com/docs/guide)を参照してください。
+`make`の各ターゲットは`uv run`経由で実行されるため、venvを手動でアクティベートする必要はありません。詳細は[Modalのドキュメント](https://modal.com/docs/guide)を参照してください。
 
 ## クイックスタート
 
@@ -49,8 +55,9 @@ modal token new
 3. Makefile を開いてプロンプトを設定
 4. `make app_img` を実行（SDXL用アプリをModal上にデプロイ）
 5. `make app_vid` を実行（Wan I2V用アプリをModal上にデプロイ）
-6. `make img_by_sdxl_txt2img` を実行（スクリプトが起動）
-7. `make vid_by_wan_ti2v` を実行（TI2Vの動画生成）
+6. `make prep_wan_i2v` を実行（Wan I2VモデルをModal Volumeに保存）
+7. `make img_by_sdxl_txt2img` を実行（スクリプトが起動）
+8. `make vid_by_wan_ti2v` を実行（TI2Vの動画生成）
 
 ## ディレクトリ構成
 
@@ -109,6 +116,19 @@ vae:
   url: https://huggingface.co/replace/with/your/sdxl/vae.safetensors
 ```
 
+Wan I2V を使う場合は `wan_i2v` にモデルを設定します。
+
+```yml
+wan_i2v:
+  model:
+    name: wan-i2v-a14b
+    # safetensors_url を指定しない時に使う
+    # 省略時は Wan-AI/Wan2.2-I2V-A14B-Diffusers が使われる
+    repo_id: Wan-AI/Wan2.2-I2V-A14B-Diffusers
+    # 任意: 指定した場合は repo_id の重みより safetensors を優先
+    # safetensors_url: https://huggingface.co/user/repo/resolve/main/your.safetensors
+```
+
 LoRAは下記のように指定します。
 
 ```yml
@@ -134,7 +154,7 @@ model:
 ```makefile
 # 設定例
 img_by_sdxl_txt2img:
-  cd ./cmd && modal run txt2img_handler.py::main \
+  cd ./cmd && uv run modal run txt2img_handler.py::main \
   --version "sdxl" \
   --prompt "A dog is running on the grass" \
   --n-prompt "" \
