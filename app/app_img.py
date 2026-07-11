@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import io
 import os
 from abc import ABC, abstractmethod
@@ -8,7 +9,7 @@ from pathlib import Path
 import diffusers
 import PIL.Image
 from huggingface_hub import login
-from modal import App, Image, Secret, enter, method
+from modal import App, Image, Secret, enter, is_local, method
 
 BASE_CACHE_PATH = "/vol/cache"
 BASE_CACHE_PATH_LORA = "/vol/cache/lora"
@@ -119,9 +120,13 @@ class CommonSetup:
             f.write(downloaded)
 
 
-def build_image() -> None:
+def build_image(config_hash: str) -> None:  # noqa: ARG001
     """
     Build the Docker image.
+
+    config_hash is unused at runtime. It is part of Modal's layer cache key,
+    so this function is re-run when config.yml changes (Modal does not
+    invalidate the cache on COPY'd file content changes alone).
     """
     import yaml
 
@@ -146,10 +151,15 @@ app = App("sdxl-cli")
 base_stub = Image.from_dockerfile(
     path="Dockerfile",
 )
+config_hash = ""
+if is_local():
+    config_path = Path(__file__).parent / "config.yml"
+    config_hash = hashlib.sha256(config_path.read_bytes()).hexdigest()
 app.image = base_stub.dockerfile_commands(
     "COPY config.yml /",
 ).run_function(
     build_image,
+    args=(config_hash,),
     secrets=[Secret.from_dotenv(__file__)],
 )
 
