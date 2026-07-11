@@ -35,7 +35,7 @@ brew install uv
 uv sync
 ```
 
-The heavy ML libraries (torch, diffusers, etc.) live in the Modal container image (`app/requirements.txt`) and are not installed locally — running the CLI only needs `modal`.
+The heavy ML libraries (torch, diffusers, etc.) live in the Modal container image (`app/pyproject.toml` + `app/uv.lock`) and are not installed locally — running the CLI only needs `modal`.
 
 And you need a modal token to use this script:
 
@@ -77,7 +77,8 @@ Images are generated and output to the `outputs/` directory.
     ├── app_vid.py              # Modal app and inference implementation (Wan I2V)
     ├── Dockerfile              # To build a base image.
     ├── config.yml              # To set a model, VAE and optional tools.
-    └── requirements.txt
+    ├── pyproject.toml          # Dependencies installed in the container image.
+    └── uv.lock                 # Locked versions of the image dependencies.
 ```
 
 ## How to use

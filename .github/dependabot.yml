@@ -5,14 +5,28 @@
 
 version: 2
 updates:
-  - package-ecosystem: "pip" # See documentation for possible values
-    directory: "./app" # Location of package manifests
+  - package-ecosystem: "uv" # See documentation for possible values
+    directory: "/app" # Location of package manifests
     schedule:
       interval: "weekly"
     cooldown:
       default-days: 14
+    groups:
+      app-dependencies:
+        patterns:
+          - "*"
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 14
+    groups:
+      cli-dependencies:
+        patterns:
+          - "*"
   - package-ecosystem: "docker"
-    directory: "./app"
+    directory: "/app"
     schedule:
       interval: "weekly"
     cooldown:

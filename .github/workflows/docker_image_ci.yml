@@ -4,7 +4,8 @@ on:
   push:
     paths:
       - app/Dockerfile
-      - app/requirements.txt
+      - app/pyproject.toml
+      - app/uv.lock
       - .github/workflows/docker_image_ci.yml
 
 jobs:
