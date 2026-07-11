@@ -186,6 +186,13 @@ img_by_sdxl_txt2img:
 make app
 ```
 
+初回デプロイ後は、下記のコマンドでモデルをModal Volumeにダウンロードします。
+
+```bash
+make prep_sdxl
+make prep_wan_i2v
+```
+
 ### 6. 推論を実行する
 
 下記のコマンドでtxt2img推論が実行されます。
@@ -193,3 +200,22 @@ make app
 ```bash
 make img_by_sdxl_txt2img
 ```
+
+### 7. モデルを追加・切り替えする
+
+新しいモデルをVolumeに追加する手順:
+
+1. `./app/config.yml` の `model.name` と `model.url` を新しいモデルに書き換える
+2. `make prep_sdxl` を実行（新しいモデルが `sdxl-models` Volumeにダウンロードされます。既存のモデルは消えないため、複数モデルを併存できます）
+3. `make app_img` を実行（コンテナに新しい `config.yml` を反映するための再デプロイ。モデルのダウンロードは走らず、数十秒のレイヤ更新のみ）
+
+Volumeに既にあるモデルへ切り替える場合は、`./app/config.yml` を書き換えて `make app_img` を実行するだけです。`make prep_sdxl` を実行しても、モデルが既に存在する場合はダウンロードがスキップされるだけなので無害です。
+
+Volumeの中身の確認・削除はModal CLIで行えます。
+
+```bash
+uv run modal volume ls sdxl-models
+uv run modal volume rm sdxl-models /<モデル名>
+```
+
+モデル名が同じままURLだけ変わった場合など、強制的に再ダウンロードしたいときは、先にVolumeからモデルを削除してから `make prep_sdxl` を実行してください。
