@@ -53,10 +53,11 @@ To use the script, execute the below.
 2. Copy `./app/config.sample.yml` to `./app/config.yml`
 3. Open the Makefile and set prompts.
 4. Execute `make app_img` command. An application for SDXL will be deployed to Modal.
-5. Execute `make app_vid` command. An application for Wan I2V will be deployed to Modal.
-6. Execute `make prep_wan_i2v` command. The Wan I2V model will be downloaded into a Modal Volume.
-7. Execute `make img_by_sdxl_txt2img` command.
-8. Execute `make vid_by_wan_ti2v` command (TI2V video generation).
+5. Execute `make prep_sdxl` command. The SDXL model will be downloaded into a Modal Volume. Run it again whenever you change the model in `config.yml`.
+6. Execute `make app_vid` command. An application for Wan I2V will be deployed to Modal.
+7. Execute `make prep_wan_i2v` command. The Wan I2V model will be downloaded into a Modal Volume.
+8. Execute `make img_by_sdxl_txt2img` command.
+9. Execute `make vid_by_wan_ti2v` command (TI2V video generation).
 
 Images are generated and output to the `outputs/` directory.
 
@@ -184,6 +185,13 @@ Execute the below command. An application will be deployed on Modal.
 make app
 ```
 
+After the first deployment, download the models into the Modal Volumes.
+
+```bash
+make prep_sdxl
+make prep_wan_i2v
+```
+
 ### 6. Run inference
 
 The txt2img inference is executed with the following command.
@@ -191,5 +199,26 @@ The txt2img inference is executed with the following command.
 ```bash
 make img_by_sdxl_txt2img
 ```
+
+### 7. Add or switch models
+
+To add a new model to the volume:
+
+1. Edit `model.name` and `model.url` in `./app/config.yml`.
+2. Execute `make prep_sdxl`. The new model will be downloaded into the `sdxl-models` volume. Existing models are kept, so multiple models can live in the volume side by side.
+3. Execute `make app_img`. This redeploys the app so the container picks up the new `config.yml` (no model download runs, only a quick layer update).
+
+Steps 2 and 3 can be run at once with `make switch_sdxl`.
+
+To switch to a model that is already in the volume, just edit `./app/config.yml` and execute `make app_img`. Running `make prep_sdxl` again is harmless: the download is skipped when the model already exists.
+
+You can inspect or clean up the volume with the Modal CLI:
+
+```bash
+uv run modal volume ls sdxl-models
+uv run modal volume rm sdxl-models /<model name>
+```
+
+To force a re-download (e.g. the URL changed but the model name stayed the same), remove the model from the volume first and then execute `make prep_sdxl`.
 
 Thank you.

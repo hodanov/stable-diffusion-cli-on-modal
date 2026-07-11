@@ -54,10 +54,11 @@ uv run modal token new
 2. ./app/config.example.yml を ./app/config.ymlにコピー
 3. Makefile を開いてプロンプトを設定
 4. `make app_img` を実行（SDXL用アプリをModal上にデプロイ）
-5. `make app_vid` を実行（Wan I2V用アプリをModal上にデプロイ）
-6. `make prep_wan_i2v` を実行（Wan I2VモデルをModal Volumeに保存）
-7. `make img_by_sdxl_txt2img` を実行（スクリプトが起動）
-8. `make vid_by_wan_ti2v` を実行（TI2Vの動画生成）
+5. `make prep_sdxl` を実行（SDXLモデルをModal Volumeに保存。config.ymlのモデル変更時も再実行）
+6. `make app_vid` を実行（Wan I2V用アプリをModal上にデプロイ）
+7. `make prep_wan_i2v` を実行（Wan I2VモデルをModal Volumeに保存）
+8. `make img_by_sdxl_txt2img` を実行（スクリプトが起動）
+9. `make vid_by_wan_ti2v` を実行（TI2Vの動画生成）
 
 ## ディレクトリ構成
 
@@ -185,6 +186,13 @@ img_by_sdxl_txt2img:
 make app
 ```
 
+初回デプロイ後は、下記のコマンドでモデルをModal Volumeにダウンロードします。
+
+```bash
+make prep_sdxl
+make prep_wan_i2v
+```
+
 ### 6. 推論を実行する
 
 下記のコマンドでtxt2img推論が実行されます。
@@ -192,3 +200,24 @@ make app
 ```bash
 make img_by_sdxl_txt2img
 ```
+
+### 7. モデルを追加・切り替えする
+
+新しいモデルをVolumeに追加する手順:
+
+1. `./app/config.yml` の `model.name` と `model.url` を新しいモデルに書き換える
+2. `make prep_sdxl` を実行（新しいモデルが `sdxl-models` Volumeにダウンロードされます。既存のモデルは消えないため、複数モデルを併存できます）
+3. `make app_img` を実行（コンテナに新しい `config.yml` を反映するための再デプロイ。モデルのダウンロードは走らず、数十秒のレイヤ更新のみ）
+
+手順2〜3は `make switch_sdxl` で一括実行できます。
+
+Volumeに既にあるモデルへ切り替える場合は、`./app/config.yml` を書き換えて `make app_img` を実行するだけです。`make prep_sdxl` を実行しても、モデルが既に存在する場合はダウンロードがスキップされるだけなので無害です。
+
+Volumeの中身の確認・削除はModal CLIで行えます。
+
+```bash
+uv run modal volume ls sdxl-models
+uv run modal volume rm sdxl-models /<モデル名>
+```
+
+モデル名が同じままURLだけ変わった場合など、強制的に再ダウンロードしたいときは、先にVolumeからモデルを削除してから `make prep_sdxl` を実行してください。
