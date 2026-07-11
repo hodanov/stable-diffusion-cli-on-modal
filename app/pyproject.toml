@@ -18,7 +18,6 @@ dependencies = [
   "torch>=2.12.0",
   "torchvision",  # Direct dependency so tool.uv.sources pins it to the cu126 index.
   "transformers>=5.12.1",
-  "xformers>=0.0.35",
 ]
 
 [tool.uv]
@@ -32,4 +31,3 @@ explicit = true
 [tool.uv.sources]
 torch = { index = "pytorch-cu126" }
 torchvision = { index = "pytorch-cu126" }
-xformers = { index = "pytorch-cu126" }
