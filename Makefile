@@ -8,6 +8,9 @@ app_img:
 app_vid:
 	cd ./app && uv run --project .. modal deploy app_vid.py
 
+prep_sdxl:
+	cd ./app && uv run --project .. modal run app_img.py::prepare_sdxl
+
 prep_wan_i2v:
 	cd ./app && uv run --project .. modal run app_vid.py::prepare_wan_i2v
 

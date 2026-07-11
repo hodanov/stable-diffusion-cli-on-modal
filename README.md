@@ -53,10 +53,11 @@ To use the script, execute the below.
 2. Copy `./app/config.sample.yml` to `./app/config.yml`
 3. Open the Makefile and set prompts.
 4. Execute `make app_img` command. An application for SDXL will be deployed to Modal.
-5. Execute `make app_vid` command. An application for Wan I2V will be deployed to Modal.
-6. Execute `make prep_wan_i2v` command. The Wan I2V model will be downloaded into a Modal Volume.
-7. Execute `make img_by_sdxl_txt2img` command.
-8. Execute `make vid_by_wan_ti2v` command (TI2V video generation).
+5. Execute `make prep_sdxl` command. The SDXL model will be downloaded into a Modal Volume. Run it again whenever you change the model in `config.yml`.
+6. Execute `make app_vid` command. An application for Wan I2V will be deployed to Modal.
+7. Execute `make prep_wan_i2v` command. The Wan I2V model will be downloaded into a Modal Volume.
+8. Execute `make img_by_sdxl_txt2img` command.
+9. Execute `make vid_by_wan_ti2v` command (TI2V video generation).
 
 Images are generated and output to the `outputs/` directory.
 

@@ -54,10 +54,11 @@ uv run modal token new
 2. ./app/config.example.yml を ./app/config.ymlにコピー
 3. Makefile を開いてプロンプトを設定
 4. `make app_img` を実行（SDXL用アプリをModal上にデプロイ）
-5. `make app_vid` を実行（Wan I2V用アプリをModal上にデプロイ）
-6. `make prep_wan_i2v` を実行（Wan I2VモデルをModal Volumeに保存）
-7. `make img_by_sdxl_txt2img` を実行（スクリプトが起動）
-8. `make vid_by_wan_ti2v` を実行（TI2Vの動画生成）
+5. `make prep_sdxl` を実行（SDXLモデルをModal Volumeに保存。config.ymlのモデル変更時も再実行）
+6. `make app_vid` を実行（Wan I2V用アプリをModal上にデプロイ）
+7. `make prep_wan_i2v` を実行（Wan I2VモデルをModal Volumeに保存）
+8. `make img_by_sdxl_txt2img` を実行（スクリプトが起動）
+9. `make vid_by_wan_ti2v` を実行（TI2Vの動画生成）
 
 ## ディレクトリ構成
 
