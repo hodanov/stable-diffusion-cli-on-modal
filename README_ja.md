@@ -36,7 +36,7 @@ brew install uv
 uv sync
 ```
 
-torchやdiffusersなどの重いMLライブラリはModalコンテナのイメージ側（`app/requirements.txt`）に入るため、ローカルにはインストールされません。CLIの実行に必要なのは`modal`のみです。
+torchやdiffusersなどの重いMLライブラリはModalコンテナのイメージ側（`app/pyproject.toml` + `app/uv.lock`）に入るため、ローカルにはインストールされません。CLIの実行に必要なのは`modal`のみです。
 
 Modalのトークンも必要です:
 
@@ -76,7 +76,8 @@ uv run modal token new
     ├── app_vid.py              # Modalアプリ本体（Wan I2V）
     ├── Dockerfile              # ベースイメージビルド用
     ├── config.yml              # モデル/VAE等の設定
-    └── requirements.txt
+    ├── pyproject.toml          # コンテナイメージに入る依存の定義
+    └── uv.lock                 # イメージ依存のロックファイル
 ```
 
 ## 使い方の詳細
