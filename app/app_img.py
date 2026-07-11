@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import io
 import os
 from abc import ABC, abstractmethod
@@ -9,13 +8,30 @@ from pathlib import Path
 import diffusers
 import PIL.Image
 from huggingface_hub import login
-from modal import App, Image, Secret, enter, is_local, method
+from modal import App, Image, Secret, Volume, enter, method
 
-BASE_CACHE_PATH = "/vol/cache"
-BASE_CACHE_PATH_LORA = "/vol/cache/lora"
-BASE_CACHE_PATH_TEXTUAL_INVERSION = "/vol/cache/textual_inversion"
-BASE_CACHE_PATH_CONTROLNET = "/vol/cache/controlnet"
-BASE_CACHE_PATH_UPSCALER = "/vol/cache/upscaler"
+MODEL_VOLUME_NAME = "sdxl-models"
+MODEL_VOLUME_PATH = "/vol/models"
+BASE_CACHE_PATH = MODEL_VOLUME_PATH
+BASE_CACHE_PATH_LORA = f"{MODEL_VOLUME_PATH}/lora"
+BASE_CACHE_PATH_TEXTUAL_INVERSION = f"{MODEL_VOLUME_PATH}/textual_inversion"
+BASE_CACHE_PATH_CONTROLNET = f"{MODEL_VOLUME_PATH}/controlnet"
+BASE_CACHE_PATH_UPSCALER = f"{MODEL_VOLUME_PATH}/upscaler"
+# Keep the HF download cache out of the volume so only save_pretrained
+# outputs are persisted. The path is container-local and single-tenant.
+HF_CACHE_DIR = "/tmp/hf_cache"  # noqa: S108
+
+model_volume = Volume.from_name(MODEL_VOLUME_NAME, create_if_missing=True)
+app = App(
+    "sdxl-cli",
+    volumes={MODEL_VOLUME_PATH: model_volume},
+)
+base_stub = Image.from_dockerfile(
+    path="Dockerfile",
+)
+app.image = base_stub.dockerfile_commands(
+    "COPY config.yml /",
+)
 
 
 class StableDiffusionCLISetupInterface(ABC):
@@ -46,7 +62,7 @@ class StableDiffusionCLISetupSDXL(StableDiffusionCLISetupInterface):
         pipe = diffusers.StableDiffusionXLPipeline.from_single_file(
             pretrained_model_link_or_path=self.__model_url,
             use_auth_token=self.__token,
-            cache_dir=cache_path,
+            cache_dir=HF_CACHE_DIR,
         )
         pipe.save_pretrained(cache_path, safe_serialization=True)
 
@@ -93,7 +109,7 @@ class CommonSetup:
         vae = diffusers.AutoencoderKL.from_single_file(
             pretrained_model_link_or_path=model_url,
             use_auth_token=token,
-            cache_dir=cache_path,
+            cache_dir=HF_CACHE_DIR,
         )
         vae.save_pretrained(cache_path, safe_serialization=True)
 
@@ -102,7 +118,7 @@ class CommonSetup:
         controlnet = diffusers.ControlNetModel.from_pretrained(
             repo_id,
             use_auth_token=token,
-            cache_dir=cache_path,
+            cache_dir=HF_CACHE_DIR,
         )
         controlnet.save_pretrained(cache_path, safe_serialization=True)
 
@@ -120,13 +136,17 @@ class CommonSetup:
             f.write(downloaded)
 
 
-def build_image(config_hash: str) -> None:  # noqa: ARG001
+@app.function(
+    timeout=3600,
+    secrets=[Secret.from_dotenv(__file__)],
+)
+def prepare_sdxl() -> None:
     """
-    Build the Docker image.
+    Download the SDXL model and setup files into the model volume.
 
-    config_hash is unused at runtime. It is part of Modal's layer cache key,
-    so this function is re-run when config.yml changes (Modal does not
-    invalidate the cache on COPY'd file content changes alone).
+    The model download is skipped when the model already exists in the
+    volume. To force a re-download, remove it first with
+    `modal volume rm sdxl-models /<model name>`.
     """
     import yaml
 
@@ -134,6 +154,7 @@ def build_image(config_hash: str) -> None:  # noqa: ARG001
     with open("/config.yml") as file:
         config: dict = yaml.safe_load(file)
 
+    model_volume.reload()
     stable_diffusion_setup: StableDiffusionCLISetupInterface
     match config.get("version"):
         case "sdxl":
@@ -142,26 +163,15 @@ def build_image(config_hash: str) -> None:  # noqa: ARG001
             msg = f"Invalid version: {config.get('version')}. Only 'sdxl' is supported now."
             raise ValueError(msg)
 
-    stable_diffusion_setup.download_model()
+    model_path = Path(BASE_CACHE_PATH) / config["model"]["name"]
+    if model_path.exists():
+        print(f"The model already exists at '{model_path}'. Skipping the download.")  # noqa: T201
+    else:
+        stable_diffusion_setup.download_model()
+
     common_setup = CommonSetup(config, token)
     common_setup.download_setup_files()
-
-
-app = App("sdxl-cli")
-base_stub = Image.from_dockerfile(
-    path="Dockerfile",
-)
-config_hash = ""
-if is_local():
-    config_path = Path(__file__).parent / "config.yml"
-    config_hash = hashlib.sha256(config_path.read_bytes()).hexdigest()
-app.image = base_stub.dockerfile_commands(
-    "COPY config.yml /",
-).run_function(
-    build_image,
-    args=(config_hash,),
-    secrets=[Secret.from_dotenv(__file__)],
-)
+    model_volume.commit()
 
 
 @app.cls(
@@ -182,9 +192,13 @@ class SDXLTxt2Img:
         config = {}
         with Path("/config.yml").open() as file:
             config = yaml.safe_load(file)
+        model_volume.reload()
         self.__cache_path = Path(BASE_CACHE_PATH) / config["model"]["name"]
         if not Path.exists(self.__cache_path):
-            msg = f"The directory '{self.__cache_path}' does not exist."
+            msg = (
+                f"The directory '{self.__cache_path}' does not exist. "
+                "Run `make prep_sdxl` first to download the model into the volume."
+            )
             raise ValueError(msg)
 
         self.__pipe = diffusers.StableDiffusionXLPipeline.from_pretrained(
