@@ -4,10 +4,14 @@ import io
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 import PIL.Image
 from modal import App, Image, Secret, Volume, enter, method
+
+if TYPE_CHECKING:
+    from diffusers import WanTransformer3DModel
 
 DEFAULT_WAN_I2V_REPO_ID = "Wan-AI/Wan2.2-I2V-A14B-Diffusers"
 MODEL_VOLUME_NAME = "wan-i2v-models"
@@ -46,6 +50,10 @@ class WanI2VSetup(WanI2VSetupInterface):
         self.__model_name: str = model_config["name"]
         self.__repo_id: str = model_config.get("repo_id") or DEFAULT_WAN_I2V_REPO_ID
         self.__safetensors_url: str | None = model_config.get("safetensors_url")
+        self.__safetensors_url_low: str | None = model_config.get("safetensors_url_low")
+        if self.__safetensors_url_low and not self.__safetensors_url:
+            msg = "wan_i2v.model.safetensors_url is required when safetensors_url_low is set."
+            raise ValueError(msg)
         self.__token: str = token
 
     def download_model(self) -> None:
@@ -54,33 +62,46 @@ class WanI2VSetup(WanI2VSetupInterface):
         cache_path = Path(MODEL_VOLUME_PATH) / self.__model_name
         if self.__safetensors_url:
             # Keep configs/tokenizers/vae from repo and skip only transformer weights.
+            ignore_patterns = [
+                "assets/*",
+                "examples/*",
+                "*.md",
+                "transformer/*.safetensors",
+                "transformer/*.bin",
+                "transformer/*.msgpack",
+            ]
+            if self.__safetensors_url_low:
+                ignore_patterns += [
+                    "transformer_2/*.safetensors",
+                    "transformer_2/*.bin",
+                    "transformer_2/*.msgpack",
+                ]
             snapshot_download(
                 repo_id=self.__repo_id,
                 token=self.__token if self.__token != "" else None,
                 local_dir=str(cache_path),
-                ignore_patterns=[
-                    "assets/*",
-                    "examples/*",
-                    "*.md",
-                    "transformer/*.safetensors",
-                    "transformer/*.bin",
-                    "transformer/*.msgpack",
-                ],
+                ignore_patterns=ignore_patterns,
                 max_workers=2,
             )
-            snapshot_download(
-                repo_id=self.__repo_id,
-                token=self.__token if self.__token != "" else None,
-                local_dir=str(cache_path),
-                allow_patterns=[
-                    "transformer_2/*",
-                ],
-                max_workers=2,
-            )
+            if not self.__safetensors_url_low:
+                snapshot_download(
+                    repo_id=self.__repo_id,
+                    token=self.__token if self.__token != "" else None,
+                    local_dir=str(cache_path),
+                    allow_patterns=[
+                        "transformer_2/*",
+                    ],
+                    max_workers=2,
+                )
             self.__download_file(
                 self.__safetensors_url,
                 cache_path / "transformer",
             )
+            if self.__safetensors_url_low:
+                self.__download_file(
+                    self.__safetensors_url_low,
+                    cache_path / "transformer_2",
+                )
             model_volume.commit()
             return
 
@@ -151,12 +172,13 @@ class WanTI2V:
     def setup(self) -> None:
         import torch
         import yaml
-        from diffusers import AutoencoderKLWan, WanImageToVideoPipeline, WanTransformer3DModel
+        from diffusers import AutoencoderKLWan, WanImageToVideoPipeline
 
         with Path("/config.yml").open() as file:
             config = yaml.safe_load(file)
         model_config = config["wan_i2v"]["model"]
         safetensors_url = model_config.get("safetensors_url")
+        safetensors_url_low = model_config.get("safetensors_url_low")
         model_volume.reload()
         self.__cache_path = Path(MODEL_VOLUME_PATH) / model_config["name"]
         if not Path.exists(self.__cache_path):
@@ -174,17 +196,9 @@ class WanTI2V:
             "local_files_only": True,
         }
         if safetensors_url:
-            transformer_path = self.__cache_path / "transformer" / self.__filename_from_url(
-                self.__normalize_hf_url(safetensors_url),
-            )
-            if not transformer_path.exists():
-                msg = f"The file '{transformer_path}' does not exist."
-                raise ValueError(msg)
-            transformer = WanTransformer3DModel.from_single_file(
-                transformer_path,
-                torch_dtype=torch.bfloat16,
-            )
-            pipe_kwargs["transformer"] = transformer
+            pipe_kwargs["transformer"] = self.__load_transformer(safetensors_url, "transformer")
+        if safetensors_url_low:
+            pipe_kwargs["transformer_2"] = self.__load_transformer(safetensors_url_low, "transformer_2")
 
         self.__pipe = WanImageToVideoPipeline.from_pretrained(
             self.__cache_path,
@@ -197,6 +211,26 @@ class WanTI2V:
         if hasattr(self.__pipe, "enable_vae_tiling"):
             self.__pipe.enable_vae_tiling()
         self.__pipe.to("cuda")
+
+    def __load_transformer(self, url: str, subfolder: str) -> WanTransformer3DModel:
+        import torch
+        from diffusers import WanTransformer3DModel
+
+        transformer_path = self.__cache_path / subfolder / self.__filename_from_url(
+            self.__normalize_hf_url(url),
+        )
+        if not transformer_path.exists():
+            msg = f"The file '{transformer_path}' does not exist."
+            raise ValueError(msg)
+        # ComfyUI-style Wan 2.2 checkpoints get misdetected as Wan 2.1 I2V by
+        # from_single_file's config inference, leaving image cross-attention
+        # params on the meta device. Pin the config to the downloaded repo.
+        return WanTransformer3DModel.from_single_file(
+            transformer_path,
+            config=str(self.__cache_path),
+            subfolder=subfolder,
+            torch_dtype=torch.bfloat16,
+        )
 
     def __normalize_hf_url(self, url: str) -> str:
         if "huggingface.co" in url and "/blob/" in url:

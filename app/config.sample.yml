@@ -46,4 +46,8 @@ wan_i2v:
     # If omitted, Wan-AI/Wan2.2-I2V-A14B-Diffusers is used.
     repo_id: Wan-AI/Wan2.2-I2V-A14B-Diffusers
     # Optional: if provided, this is prioritized over repo_id weights.
-    # safetensors_url: https://huggingface.co/user/repo/resolve/main/your.safetensors
+    # safetensors_url replaces the high-noise expert (transformer).
+    # safetensors_url_low replaces the low-noise expert (transformer_2) and
+    # requires safetensors_url to be set as well.
+    # safetensors_url: https://huggingface.co/user/repo/resolve/main/your_high.safetensors
+    # safetensors_url_low: https://huggingface.co/user/repo/resolve/main/your_low.safetensors
