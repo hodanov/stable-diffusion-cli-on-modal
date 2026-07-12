@@ -228,12 +228,20 @@ class WanTI2V:
         # ComfyUI-style Wan 2.2 checkpoints get misdetected as Wan 2.1 I2V by
         # from_single_file's config inference, leaving image cross-attention
         # params on the meta device. Pin the config to the downloaded repo.
-        return WanTransformer3DModel.from_single_file(
+        transformer = WanTransformer3DModel.from_single_file(
             transformer_path,
             config=str(self.__cache_path),
             subfolder=subfolder,
             torch_dtype=torch.bfloat16,
         )
+        # from_single_file honors _keep_in_fp32_modules only for float16, so
+        # with bfloat16 it casts the whole model down. Restore the float32
+        # modules that the from_pretrained path would keep.
+        fp32_modules = transformer._keep_in_fp32_modules  # noqa: SLF001
+        for name, param in transformer.named_parameters():
+            if any(m in name.split(".") for m in fp32_modules):
+                param.data = param.data.float()
+        return transformer
 
     def __normalize_hf_url(self, url: str) -> str:
         if "huggingface.co" in url and "/blob/" in url:
