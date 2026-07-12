@@ -17,7 +17,7 @@ dependencies = [
   "pyyaml",  # To read the configuration file by written YAML.
   "safetensors>=0.8.0",  # To store tensors safely.
   "torch>=2.12.1",
-  "torchvision",  # Direct dependency so tool.uv.sources pins it to the cu126 index.
+  "torchvision",  # Direct dependency so tool.uv.sources pins it to the cu130 index.
   "transformers>=5.12.1",
 ]
 
@@ -28,11 +28,13 @@ override-dependencies = [
   "opencv-python; sys_platform == 'never'",
 ]
 
+# cu130: Blackwell GPUs (Modal "B200", sm_100) need CUDA 13 kernels, which
+# cu126 wheels lack. Modal hosts run driver 580 / CUDA 13.0.
 [[tool.uv.index]]
-name = "pytorch-cu126"
-url = "https://download.pytorch.org/whl/cu126"
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
 explicit = true
 
 [tool.uv.sources]
-torch = { index = "pytorch-cu126" }
-torchvision = { index = "pytorch-cu126" }
+torch = { index = "pytorch-cu130" }
+torchvision = { index = "pytorch-cu130" }

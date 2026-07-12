@@ -159,7 +159,7 @@ def prepare_wan_i2v() -> None:
 
 
 @app.cls(
-    gpu="A100-80GB",
+    gpu="B200",
     timeout=1800,
     secrets=[Secret.from_dotenv(__file__)],
 )
@@ -210,10 +210,14 @@ class WanTI2V:
         # call them on the Wan VAE directly.
         self.__pipe.vae.enable_slicing()
         self.__pipe.vae.enable_tiling()
-        # Keeping both 14B experts, the text encoder and the VAE resident on
-        # the GPU needs ~68GB and OOMs during VAE encode on A100-80GB, so move
-        # each component to the GPU only while it is used.
-        self.__pipe.enable_model_cpu_offload()
+        # Both 14B experts, the text encoder and the VAE need ~68GB resident.
+        # Keep everything on the GPU when it fits (B200/H200); on smaller GPUs
+        # (e.g. A100-80GB) that OOMs, so fall back to per-component offload.
+        min_resident_vram = 100 * 1024**3
+        if torch.cuda.get_device_properties(0).total_memory >= min_resident_vram:
+            self.__pipe.to("cuda")
+        else:
+            self.__pipe.enable_model_cpu_offload()
 
     def __load_transformer(self, url: str, subfolder: str) -> WanTransformer3DModel:
         import torch
