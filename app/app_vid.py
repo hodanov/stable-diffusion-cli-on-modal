@@ -206,11 +206,14 @@ class WanTI2V:
         )
         if hasattr(self.__pipe.transformer.config, "image_dim"):
             self.__pipe.transformer.config.image_dim = None
-        if hasattr(self.__pipe, "enable_vae_slicing"):
-            self.__pipe.enable_vae_slicing()
-        if hasattr(self.__pipe, "enable_vae_tiling"):
-            self.__pipe.enable_vae_tiling()
-        self.__pipe.to("cuda")
+        # WanImageToVideoPipeline has no enable_vae_slicing/enable_vae_tiling;
+        # call them on the Wan VAE directly.
+        self.__pipe.vae.enable_slicing()
+        self.__pipe.vae.enable_tiling()
+        # Keeping both 14B experts, the text encoder and the VAE resident on
+        # the GPU needs ~68GB and OOMs during VAE encode on A100-80GB, so move
+        # each component to the GPU only while it is used.
+        self.__pipe.enable_model_cpu_offload()
 
     def __load_transformer(self, url: str, subfolder: str) -> WanTransformer3DModel:
         import torch
