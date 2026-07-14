@@ -30,6 +30,27 @@ app.image = base_stub.dockerfile_commands(
 )
 
 
+def dequantize_comfy_scaled_fp8(state_dict: dict) -> dict:
+    """
+    Dequantizes ComfyUI-style scaled-fp8 tensors in place.
+
+    ComfyUI checkpoints quantized to float8 store a per-tensor `weight_scale`
+    (and a `comfy_quant` descriptor) next to each fp8 weight. diffusers'
+    from_single_file silently drops those keys and would load the raw fp8
+    values with wrong magnitudes, so multiply the scales back in first.
+    """
+    import torch
+
+    for key in [k for k in state_dict if k.endswith(".weight_scale")]:
+        weight_key = key.removesuffix("_scale")
+        scale = state_dict.pop(key)
+        weight = state_dict[weight_key]
+        state_dict[weight_key] = (weight.to(torch.float32) * scale).to(torch.bfloat16)
+    for key in [k for k in state_dict if k.endswith(".comfy_quant")]:
+        del state_dict[key]
+    return state_dict
+
+
 class WanI2VSetupInterface(ABC):
     @abstractmethod
     def download_model(self) -> None:
@@ -222,6 +243,7 @@ class WanTI2V:
     def __load_transformer(self, url: str, subfolder: str) -> WanTransformer3DModel:
         import torch
         from diffusers import WanTransformer3DModel
+        from safetensors.torch import load_file
 
         transformer_path = self.__cache_path / subfolder / self.__filename_from_url(
             self.__normalize_hf_url(url),
@@ -229,11 +251,12 @@ class WanTI2V:
         if not transformer_path.exists():
             msg = f"The file '{transformer_path}' does not exist."
             raise ValueError(msg)
+        state_dict = dequantize_comfy_scaled_fp8(load_file(transformer_path))
         # ComfyUI-style Wan 2.2 checkpoints get misdetected as Wan 2.1 I2V by
         # from_single_file's config inference, leaving image cross-attention
         # params on the meta device. Pin the config to the downloaded repo.
         transformer = WanTransformer3DModel.from_single_file(
-            transformer_path,
+            state_dict,
             config=str(self.__cache_path),
             subfolder=subfolder,
             torch_dtype=torch.bfloat16,
