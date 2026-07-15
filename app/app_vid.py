@@ -16,6 +16,9 @@ if TYPE_CHECKING:
 DEFAULT_WAN_I2V_REPO_ID = "Wan-AI/Wan2.2-I2V-A14B-Diffusers"
 MODEL_VOLUME_NAME = "wan-i2v-models"
 MODEL_VOLUME_PATH = "/vol/models"
+# Official Wan negative prompt; generating with an empty negative prompt
+# noticeably degrades quality (overexposure, mushy faces, extra limbs).
+DEFAULT_NEGATIVE_PROMPT = "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走"  # noqa: RUF001
 
 model_volume = Volume.from_name(MODEL_VOLUME_NAME, create_if_missing=True)
 app = App(
@@ -342,7 +345,7 @@ class WanTI2V:
 
         kwargs = {
             "prompt": prompt,
-            "negative_prompt": n_prompt,
+            "negative_prompt": n_prompt or DEFAULT_NEGATIVE_PROMPT,
             "image": image,
             "height": height,
             "width": width,
