@@ -320,6 +320,7 @@ class WanTI2V:
         num_frames: int = 121,
         fps: int = 24,
         guidance_scale: float = 5.0,
+        guidance_scale_2: float | None = None,
         use_image_aspect: bool = True,
     ) -> bytes:
         """
@@ -364,6 +365,8 @@ class WanTI2V:
             "width": width,
             "num_frames": num_frames,
             "guidance_scale": guidance_scale,
+            # None falls back to guidance_scale for the low-noise expert.
+            "guidance_scale_2": guidance_scale_2,
             "num_inference_steps": steps,
             "generator": generator,
         }

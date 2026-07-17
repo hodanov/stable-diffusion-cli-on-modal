@@ -22,6 +22,7 @@ def main(
     num_frames: int = 121,
     fps: int = 24,
     guidance_scale: float = 5.0,
+    guidance_scale_2: float = -1.0,
     use_image_aspect: str = "True",
 ) -> None:
     logging.basicConfig(
@@ -40,6 +41,8 @@ def main(
     directory_path = output_directory.make_directory()
     logger.info("Made a directory: %s", directory_path)
 
+    # -1 means "unset"; the low-noise expert then reuses guidance_scale.
+    resolved_guidance_scale_2 = None if guidance_scale_2 < 0 else guidance_scale_2
     prompts = VideoPrompts(
         prompt=prompt,
         n_prompt=n_prompt,
@@ -50,6 +53,7 @@ def main(
         num_frames=num_frames,
         fps=fps,
         guidance_scale=guidance_scale,
+        guidance_scale_2=resolved_guidance_scale_2,
         use_image_aspect=use_image_aspect == "True",
         image_path=image_path,
     )
@@ -60,6 +64,7 @@ def main(
         num_frames=num_frames,
         fps=fps,
         guidance_scale=guidance_scale,
+        guidance_scale_2=resolved_guidance_scale_2,
         use_image_aspect=use_image_aspect == "True",
     )
 

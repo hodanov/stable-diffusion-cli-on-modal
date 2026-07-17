@@ -99,6 +99,7 @@ class VideoPrompts:
         num_frames: int,
         fps: int,
         guidance_scale: float,
+        guidance_scale_2: float | None,
         use_image_aspect: bool,
         image_path: str,
     ) -> None:
@@ -134,6 +135,10 @@ class VideoPrompts:
             msg = "image_path should not be empty."
             raise ValueError(msg)
 
+        if guidance_scale_2 is not None and guidance_scale_2 <= 0:
+            msg = "guidance_scale_2 should be positive."
+            raise ValueError(msg)
+
         self.__prompt = prompt
         self.__n_prompt = n_prompt
         self.__height = height
@@ -143,6 +148,7 @@ class VideoPrompts:
         self.__num_frames = num_frames
         self.__fps = fps
         self.__guidance_scale = guidance_scale
+        self.__guidance_scale_2 = guidance_scale_2
         self.__use_image_aspect = use_image_aspect
         self.__image_path = image_path
 
@@ -181,6 +187,10 @@ class VideoPrompts:
     @property
     def guidance_scale(self) -> float:
         return self.__guidance_scale
+
+    @property
+    def guidance_scale_2(self) -> float | None:
+        return self.__guidance_scale_2
 
     @property
     def use_image_aspect(self) -> bool:
