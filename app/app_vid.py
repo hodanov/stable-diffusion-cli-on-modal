@@ -16,6 +16,9 @@ if TYPE_CHECKING:
 DEFAULT_WAN_I2V_REPO_ID = "Wan-AI/Wan2.2-I2V-A14B-Diffusers"
 MODEL_VOLUME_NAME = "wan-i2v-models"
 MODEL_VOLUME_PATH = "/vol/models"
+# Wan recommends flow_shift 3.0 for 480P-area outputs and 5.0 for 720P-area
+# outputs; switch at the midpoint of the two areas.
+FLOW_SHIFT_720P_AREA_THRESHOLD = (480 * 832 + 720 * 1280) // 2
 # Official Wan negative prompt; generating with an empty negative prompt
 # noticeably degrades quality (overexposure, mushy faces, extra limbs).
 DEFAULT_NEGATIVE_PROMPT = "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走"  # noqa: RUF001
@@ -230,10 +233,6 @@ class WanTI2V:
         )
         if hasattr(self.__pipe.transformer.config, "image_dim"):
             self.__pipe.transformer.config.image_dim = None
-        # WanImageToVideoPipeline has no enable_vae_slicing/enable_vae_tiling;
-        # call them on the Wan VAE directly.
-        self.__pipe.vae.enable_slicing()
-        self.__pipe.vae.enable_tiling()
         # Both 14B experts, the text encoder and the VAE need ~68GB resident.
         # Keep everything on the GPU when it fits (B200/H200); on smaller GPUs
         # (e.g. A100-80GB) that OOMs, so fall back to per-component offload.
@@ -241,6 +240,11 @@ class WanTI2V:
         if torch.cuda.get_device_properties(0).total_memory >= min_resident_vram:
             self.__pipe.to("cuda")
         else:
+            # WanImageToVideoPipeline has no enable_vae_slicing/enable_vae_tiling;
+            # call them on the Wan VAE directly. Tiled decode blends overlapping
+            # 256px tiles and softens detail, so keep it for low-VRAM GPUs only.
+            self.__pipe.vae.enable_slicing()
+            self.__pipe.vae.enable_tiling()
             self.__pipe.enable_model_cpu_offload()
 
     def __load_transformer(self, url: str, subfolder: str) -> WanTransformer3DModel:
@@ -324,6 +328,7 @@ class WanTI2V:
         import tempfile
 
         import torch
+        from diffusers import UniPCMultistepScheduler
         from diffusers.utils import export_to_video
 
         if image_bytes is None:
@@ -340,6 +345,14 @@ class WanTI2V:
         )
         if image.size != (width, height):
             image = image.resize((width, height), resample=PIL.Image.LANCZOS)
+
+        # The repo scheduler config ships the 480P flow_shift (3.0); rebuild the
+        # scheduler with the value matching the output area.
+        flow_shift = 5.0 if height * width >= FLOW_SHIFT_720P_AREA_THRESHOLD else 3.0
+        self.__pipe.scheduler = UniPCMultistepScheduler.from_config(
+            self.__pipe.scheduler.config,
+            flow_shift=flow_shift,
+        )
 
         generator = torch.Generator("cuda").manual_seed(seed)
 
@@ -359,6 +372,8 @@ class WanTI2V:
         frames = output.frames[0]
 
         with tempfile.NamedTemporaryFile(suffix=".mp4") as tmp:
-            export_to_video(frames, tmp.name, fps=fps)
+            # The default quality (5/10) encodes at a bitrate low enough to
+            # smear fine detail; keep the encode near-lossless.
+            export_to_video(frames, tmp.name, fps=fps, quality=10)
             tmp.seek(0)
             return tmp.read()
