@@ -24,6 +24,8 @@ def main(
     guidance_scale: float = 5.0,
     guidance_scale_2: float = -1.0,
     use_image_aspect: str = "True",
+    use_upscaler: str = "False",
+    use_face_restore: str = "False",
 ) -> None:
     logging.basicConfig(
         level=logging.INFO,
@@ -55,6 +57,8 @@ def main(
         guidance_scale=guidance_scale,
         guidance_scale_2=resolved_guidance_scale_2,
         use_image_aspect=use_image_aspect == "True",
+        use_upscaler=use_upscaler == "True",
+        use_face_restore=use_face_restore == "True",
         image_path=image_path,
     )
     output_manager = VideoOutputManager(prompts, directory_path)
@@ -66,6 +70,8 @@ def main(
         guidance_scale=guidance_scale,
         guidance_scale_2=resolved_guidance_scale_2,
         use_image_aspect=use_image_aspect == "True",
+        use_upscaler=use_upscaler == "True",
+        use_face_restore=use_face_restore == "True",
     )
 
     with image_file.open("rb") as f:

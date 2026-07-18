@@ -101,6 +101,8 @@ class VideoPrompts:
         guidance_scale: float,
         guidance_scale_2: float | None,
         use_image_aspect: bool,
+        use_upscaler: bool,
+        use_face_restore: bool,
         image_path: str,
     ) -> None:
         if prompt == "":
@@ -150,6 +152,8 @@ class VideoPrompts:
         self.__guidance_scale = guidance_scale
         self.__guidance_scale_2 = guidance_scale_2
         self.__use_image_aspect = use_image_aspect
+        self.__use_upscaler = use_upscaler
+        self.__use_face_restore = use_face_restore
         self.__image_path = image_path
 
     @property
@@ -195,6 +199,14 @@ class VideoPrompts:
     @property
     def use_image_aspect(self) -> bool:
         return self.__use_image_aspect
+
+    @property
+    def use_upscaler(self) -> bool:
+        return self.__use_upscaler
+
+    @property
+    def use_face_restore(self) -> bool:
+        return self.__use_face_restore
 
     @property
     def image_path(self) -> str:

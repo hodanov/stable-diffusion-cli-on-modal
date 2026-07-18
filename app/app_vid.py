@@ -11,6 +11,7 @@ import PIL.Image
 from modal import App, Image, Secret, Volume, enter, method
 
 if TYPE_CHECKING:
+    import numpy as np
     from diffusers import WanTransformer3DModel
 
 DEFAULT_WAN_I2V_REPO_ID = "Wan-AI/Wan2.2-I2V-A14B-Diffusers"
@@ -22,6 +23,14 @@ FLOW_SHIFT_720P_AREA_THRESHOLD = (480 * 832 + 720 * 1280) // 2
 # Official Wan negative prompt; generating with an empty negative prompt
 # noticeably degrades quality (overexposure, mushy faces, extra limbs).
 DEFAULT_NEGATIVE_PROMPT = "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走"  # noqa: RUF001
+# Post-processing weights, loaded via spandrel: the anime-video Real-ESRGAN
+# Compact model for upscaling and GFPGAN v1.4 for face restoration.
+REALESRGAN_WEIGHT_URL = "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesr-animevideov3.pth"
+GFPGAN_WEIGHT_URL = "https://github.com/TencentARC/GFPGAN/releases/download/v1.3.4/GFPGANv1.4.pth"
+POSTPROCESS_DIR_NAME = "postprocess"
+# The Real-ESRGAN model outputs 4x; resize its output down to this factor to
+# balance detail recovery against file size and encode time.
+UPSCALE_FACTOR = 2
 
 model_volume = Volume.from_name(MODEL_VOLUME_NAME, create_if_missing=True)
 app = App(
@@ -247,6 +256,12 @@ class WanTI2V:
             self.__pipe.vae.enable_tiling()
             self.__pipe.enable_model_cpu_offload()
 
+        # Post-processing models are loaded lazily on the first request that
+        # asks for them; see __ensure_postprocessors.
+        self.__upscaler = None
+        self.__face_restorer = None
+        self.__face_helper = None
+
     def __load_transformer(self, url: str, subfolder: str) -> WanTransformer3DModel:
         import torch
         from diffusers import WanTransformer3DModel
@@ -286,6 +301,100 @@ class WanTI2V:
         parsed = urlparse(url)
         return Path(parsed.path).name
 
+    def __download_file(self, url: str, cache_path: Path) -> None:
+        from urllib.request import Request, urlopen
+
+        filename = self.__filename_from_url(url)
+        req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        downloaded = urlopen(req).read()
+        cache_path.mkdir(parents=True, exist_ok=True)
+        with Path(cache_path / filename).open("wb") as f:
+            f.write(downloaded)
+
+    def __ensure_postprocessors(self) -> None:
+        if self.__face_helper is not None:
+            return
+
+        from facexlib.utils.face_restoration_helper import FaceRestoreHelper
+        from spandrel import ModelLoader
+
+        weights_path = Path(MODEL_VOLUME_PATH) / POSTPROCESS_DIR_NAME
+        for url in (REALESRGAN_WEIGHT_URL, GFPGAN_WEIGHT_URL):
+            if not (weights_path / self.__filename_from_url(url)).exists():
+                self.__download_file(url, weights_path)
+
+        loader = ModelLoader()
+        realesrgan_path = weights_path / self.__filename_from_url(REALESRGAN_WEIGHT_URL)
+        gfpgan_path = weights_path / self.__filename_from_url(GFPGAN_WEIGHT_URL)
+        self.__upscaler = loader.load_from_file(str(realesrgan_path)).to("cuda").eval()
+        self.__face_restorer = loader.load_from_file(str(gfpgan_path)).to("cuda").eval()
+        # FaceRestoreHelper downloads its detection/parsing weights into
+        # model_rootpath on first construction, so keep them on the volume too.
+        self.__face_helper = FaceRestoreHelper(
+            upscale_factor=1,
+            face_size=512,
+            use_parse=True,
+            det_model="retinaface_resnet50",
+            model_rootpath=str(weights_path),
+            device="cuda",
+        )
+        model_volume.commit()
+
+    def __postprocess_frames(
+        self,
+        frames: np.ndarray,
+        *,
+        use_upscaler: bool,
+        use_face_restore: bool,
+    ) -> list[np.ndarray]:
+        import numpy as np
+        import torch
+
+        self.__ensure_postprocessors()
+        processed = []
+        for frame in frames:
+            image = np.clip(np.asarray(frame, dtype=np.float32), 0.0, 1.0)
+            if use_upscaler:
+                tensor = torch.from_numpy(image).permute(2, 0, 1).unsqueeze(0).to("cuda")
+                with torch.no_grad():
+                    upscaled = self.__upscaler(tensor)
+                target_size = (image.shape[0] * UPSCALE_FACTOR, image.shape[1] * UPSCALE_FACTOR)
+                upscaled = torch.nn.functional.interpolate(upscaled, size=target_size, mode="area")
+                image = upscaled.squeeze(0).permute(1, 2, 0).clamp(0, 1).cpu().numpy()
+            if use_face_restore:
+                image = self.__restore_faces(image)
+            processed.append(image)
+        return processed
+
+    def __restore_faces(self, image: np.ndarray) -> np.ndarray:
+        """
+        Restores every detected face in an RGB float32 [0, 1] frame with GFPGAN
+        and pastes the results back, returning the frame in the same format.
+        """
+        import numpy as np
+        import torch
+
+        bgr = (image[..., ::-1] * 255.0).round().astype(np.uint8)
+        helper = self.__face_helper
+        helper.clean_all()
+        helper.read_image(bgr)
+        num_faces = helper.get_face_landmarks_5(only_center_face=False, eye_dist_threshold=5)
+        if num_faces == 0:
+            return image
+
+        helper.align_warp_face()
+        for cropped_face in helper.cropped_faces:
+            face = cropped_face[..., ::-1].astype(np.float32) / 255.0
+            tensor = torch.from_numpy(face).permute(2, 0, 1).unsqueeze(0).to("cuda")
+            with torch.no_grad():
+                restored = self.__face_restorer(tensor)
+            restored_face = restored.squeeze(0).permute(1, 2, 0).clamp(0, 1).cpu().numpy()
+            helper.add_restored_face((restored_face[..., ::-1] * 255.0).round().astype(np.uint8))
+
+        helper.get_inverse_affine(None)
+        restored_bgr = helper.paste_faces_to_input_image()
+        return restored_bgr[..., ::-1].astype(np.float32) / 255.0
+
     def __target_size_for_image(
         self,
         image: PIL.Image.Image,
@@ -322,6 +431,8 @@ class WanTI2V:
         guidance_scale: float = 5.0,
         guidance_scale_2: float | None = None,
         use_image_aspect: bool = True,
+        use_upscaler: bool = False,
+        use_face_restore: bool = False,
     ) -> bytes:
         """
         Runs the Wan text-image-to-video pipeline and returns an mp4 binary.
@@ -373,6 +484,12 @@ class WanTI2V:
 
         output = self.__pipe(**kwargs)
         frames = output.frames[0]
+        if use_upscaler or use_face_restore:
+            frames = self.__postprocess_frames(
+                frames,
+                use_upscaler=use_upscaler,
+                use_face_restore=use_face_restore,
+            )
 
         with tempfile.NamedTemporaryFile(suffix=".mp4") as tmp:
             # The default quality (5/10) encodes at a bitrate low enough to
