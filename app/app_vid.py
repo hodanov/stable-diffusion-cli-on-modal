@@ -215,6 +215,12 @@ class WanTI2V:
         model_config = config["wan_i2v"]["model"]
         safetensors_url = model_config.get("safetensors_url")
         safetensors_url_low = model_config.get("safetensors_url_low")
+        lora_url = model_config.get("lora_url")
+        lora_url_low = model_config.get("lora_url_low")
+        # Model-level override for the scheduler flow_shift; distill LoRAs are
+        # trained at a fixed shift (lightx2v: 5.0), which should win over the
+        # area-based default.
+        self.__flow_shift_override = model_config.get("flow_shift")
         model_volume.reload()
         self.__cache_path = Path(MODEL_VOLUME_PATH) / model_config["name"]
         if not Path.exists(self.__cache_path):
@@ -255,6 +261,25 @@ class WanTI2V:
             self.__pipe.vae.enable_slicing()
             self.__pipe.vae.enable_tiling()
             self.__pipe.enable_model_cpu_offload()
+
+        # Distill/accelerator LoRAs (e.g. lightx2v 4-step): load_lora_weights
+        # targets the high-noise expert by default; load_into_transformer_2
+        # targets the low-noise expert. Strengths are set per expert.
+        if lora_url:
+            self.__pipe.load_lora_weights(
+                str(self.__ensure_lora_file(lora_url)),
+                adapter_name="accel_high",
+            )
+            lora_scale = float(model_config.get("lora_scale", 1.0))
+            self.__pipe.transformer.set_adapters(["accel_high"], weights=[lora_scale])
+        if lora_url_low:
+            self.__pipe.load_lora_weights(
+                str(self.__ensure_lora_file(lora_url_low)),
+                adapter_name="accel_low",
+                load_into_transformer_2=True,
+            )
+            lora_scale_low = float(model_config.get("lora_scale_low", 1.0))
+            self.__pipe.transformer_2.set_adapters(["accel_low"], weights=[lora_scale_low])
 
         # Post-processing models are loaded lazily on the first request that
         # asks for them; see __ensure_postprocessors.
@@ -300,6 +325,14 @@ class WanTI2V:
     def __filename_from_url(self, url: str) -> str:
         parsed = urlparse(url)
         return Path(parsed.path).name
+
+    def __ensure_lora_file(self, url: str) -> Path:
+        normalized_url = self.__normalize_hf_url(url)
+        lora_path = self.__cache_path / "loras" / self.__filename_from_url(normalized_url)
+        if not lora_path.exists():
+            self.__download_file(normalized_url, lora_path.parent)
+            model_volume.commit()
+        return lora_path
 
     def __download_file(self, url: str, cache_path: Path) -> None:
         from urllib.request import Request, urlopen
@@ -459,8 +492,11 @@ class WanTI2V:
             image = image.resize((width, height), resample=PIL.Image.LANCZOS)
 
         # The repo scheduler config ships the 480P flow_shift (3.0); rebuild the
-        # scheduler with the value matching the output area.
-        flow_shift = 5.0 if height * width >= FLOW_SHIFT_720P_AREA_THRESHOLD else 3.0
+        # scheduler with the configured override or the value matching the
+        # output area.
+        flow_shift = self.__flow_shift_override
+        if flow_shift is None:
+            flow_shift = 5.0 if height * width >= FLOW_SHIFT_720P_AREA_THRESHOLD else 3.0
         self.__pipe.scheduler = UniPCMultistepScheduler.from_config(
             self.__pipe.scheduler.config,
             flow_shift=flow_shift,
