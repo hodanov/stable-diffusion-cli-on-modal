@@ -16,9 +16,9 @@ dependencies = [
   "pillow-avif-plugin",  # To save images in AVIF format.
   "pyyaml",  # To read the configuration file by written YAML.
   "safetensors>=0.8.0",  # To store tensors safely.
-  "torch>=2.12.1",
+  "torch>=2.13.0",
   "torchvision",  # Direct dependency so tool.uv.sources pins it to the cu126 index.
-  "transformers>=5.12.1",
+  "transformers>=5.13.0",
 ]
 
 [tool.uv]
