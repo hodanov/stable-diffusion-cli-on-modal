@@ -58,13 +58,19 @@ class WanTI2V(Ti2VInterface):
         num_frames: int,
         fps: int,
         guidance_scale: float,
+        guidance_scale_2: float | None,
         use_image_aspect: bool,
+        use_upscaler: bool,
+        use_face_restore: bool,
     ) -> None:
         self.__prompts = prompts
         self.__num_frames = num_frames
         self.__fps = fps
         self.__guidance_scale = guidance_scale
+        self.__guidance_scale_2 = guidance_scale_2
         self.__use_image_aspect = use_image_aspect
+        self.__use_upscaler = use_upscaler
+        self.__use_face_restore = use_face_restore
         self.__wan_ti2v = modal.Cls.from_name(
             "wan-i2v-cli",
             "WanTI2V",
@@ -81,7 +87,10 @@ class WanTI2V(Ti2VInterface):
             num_frames=self.__num_frames,
             fps=self.__fps,
             guidance_scale=self.__guidance_scale,
+            guidance_scale_2=self.__guidance_scale_2,
             use_image_aspect=self.__use_image_aspect,
+            use_upscaler=self.__use_upscaler,
+            use_face_restore=self.__use_face_restore,
             image_bytes=image_bytes,
         )
 
@@ -111,12 +120,18 @@ def new_ti2v(
     num_frames: int,
     fps: int,
     guidance_scale: float,
+    guidance_scale_2: float | None,
     use_image_aspect: bool,
+    use_upscaler: bool,
+    use_face_restore: bool,
 ) -> Ti2VInterface:
     return WanTI2V(
         prompts=prompts,
         num_frames=num_frames,
         fps=fps,
         guidance_scale=guidance_scale,
+        guidance_scale_2=guidance_scale_2,
         use_image_aspect=use_image_aspect,
+        use_upscaler=use_upscaler,
+        use_face_restore=use_face_restore,
     )

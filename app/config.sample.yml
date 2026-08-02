@@ -46,4 +46,19 @@ wan_i2v:
     # If omitted, Wan-AI/Wan2.2-I2V-A14B-Diffusers is used.
     repo_id: Wan-AI/Wan2.2-I2V-A14B-Diffusers
     # Optional: if provided, this is prioritized over repo_id weights.
-    # safetensors_url: https://huggingface.co/user/repo/resolve/main/your.safetensors
+    # safetensors_url replaces the high-noise expert (transformer).
+    # safetensors_url_low replaces the low-noise expert (transformer_2) and
+    # requires safetensors_url to be set as well.
+    # safetensors_url: https://huggingface.co/user/repo/resolve/main/your_high.safetensors
+    # safetensors_url_low: https://huggingface.co/user/repo/resolve/main/your_low.safetensors
+    # Optional: distill/accelerator LoRAs (e.g. lightx2v 4-step). lora_url is
+    # applied to the high-noise expert, lora_url_low to the low-noise expert;
+    # each can be set independently. When using distill LoRAs, run with 4-6
+    # steps and --guidance-scale 1.0 (negative prompts are then ignored).
+    # lora_url: https://huggingface.co/lightx2v/Wan2.2-Distill-Loras/resolve/main/wan2.2_i2v_A14b_high_noise_lora_rank64_lightx2v_4step_1022.safetensors
+    # lora_url_low: https://huggingface.co/lightx2v/Wan2.2-Distill-Loras/resolve/main/wan2.2_i2v_A14b_low_noise_lora_rank64_lightx2v_4step_1022.safetensors
+    # lora_scale: 1.0
+    # lora_scale_low: 1.0
+    # Optional: fixed scheduler flow_shift. Distill LoRAs are trained at a
+    # fixed shift (lightx2v: 5.0). Omit to pick 3.0/5.0 from the output area.
+    # flow_shift: 5.0
