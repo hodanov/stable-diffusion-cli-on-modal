@@ -22,11 +22,13 @@ MODEL_VOLUME_PATH = "/vol/models"
 FLOW_SHIFT_720P_AREA_THRESHOLD = (480 * 832 + 720 * 1280) // 2
 # Official Wan negative prompt; generating with an empty negative prompt
 # noticeably degrades quality (overexposure, mushy faces, extra limbs).
-DEFAULT_NEGATIVE_PROMPT = "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走"  # noqa: RUF001
+DEFAULT_NEGATIVE_PROMPT = "Garish colors, overexposed, static, blurry details, subtitles, stylized, artwork, painting, image, still, overall grayish cast, worst quality, low quality, JPEG artifacts, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn face, deformed, disfigured, malformed limbs, fused fingers, motionless image, cluttered background, three legs, crowded background, walking backwards."
 # Post-processing weights, loaded via spandrel: the anime-video Real-ESRGAN
 # Compact model for upscaling and GFPGAN v1.4 for face restoration.
 REALESRGAN_WEIGHT_URL = "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesr-animevideov3.pth"
-GFPGAN_WEIGHT_URL = "https://github.com/TencentARC/GFPGAN/releases/download/v1.3.4/GFPGANv1.4.pth"
+GFPGAN_WEIGHT_URL = (
+    "https://github.com/TencentARC/GFPGAN/releases/download/v1.3.4/GFPGANv1.4.pth"
+)
 POSTPROCESS_DIR_NAME = "postprocess"
 # The Real-ESRGAN model outputs 4x; resize its output down to this factor to
 # balance detail recovery against file size and encode time.
@@ -253,9 +255,15 @@ class WanTI2V:
             "local_files_only": True,
         }
         if safetensors_url:
-            pipe_kwargs["transformer"] = self.__load_transformer(safetensors_url, "transformer")
+            pipe_kwargs["transformer"] = self.__load_transformer(
+                safetensors_url,
+                "transformer",
+            )
         if safetensors_url_low:
-            pipe_kwargs["transformer_2"] = self.__load_transformer(safetensors_url_low, "transformer_2")
+            pipe_kwargs["transformer_2"] = self.__load_transformer(
+                safetensors_url_low,
+                "transformer_2",
+            )
 
         self.__pipe = WanImageToVideoPipeline.from_pretrained(
             self.__cache_path,
@@ -294,7 +302,10 @@ class WanTI2V:
                 load_into_transformer_2=True,
             )
             lora_scale_low = float(model_config.get("lora_scale_low", 1.0))
-            self.__pipe.transformer_2.set_adapters(["accel_low"], weights=[lora_scale_low])
+            self.__pipe.transformer_2.set_adapters(
+                ["accel_low"],
+                weights=[lora_scale_low],
+            )
 
         # Post-processing models are loaded lazily on the first request that
         # asks for them; see __ensure_postprocessors.
@@ -307,8 +318,12 @@ class WanTI2V:
         from diffusers import WanTransformer3DModel
         from safetensors.torch import load_file
 
-        transformer_path = self.__cache_path / subfolder / self.__filename_from_url(
-            self.__normalize_hf_url(url),
+        transformer_path = (
+            self.__cache_path
+            / subfolder
+            / self.__filename_from_url(
+                self.__normalize_hf_url(url),
+            )
         )
         if not transformer_path.exists():
             msg = f"The file '{transformer_path}' does not exist."
@@ -343,7 +358,9 @@ class WanTI2V:
 
     def __ensure_lora_file(self, url: str) -> Path:
         normalized_url = self.__normalize_hf_url(url)
-        lora_path = self.__cache_path / "loras" / self.__filename_from_url(normalized_url)
+        lora_path = (
+            self.__cache_path / "loras" / self.__filename_from_url(normalized_url)
+        )
         if not lora_path.exists():
             self.__download_file(normalized_url, lora_path.parent)
             model_volume.commit()
@@ -403,11 +420,20 @@ class WanTI2V:
         for frame in frames:
             image = np.clip(np.asarray(frame, dtype=np.float32), 0.0, 1.0)
             if use_upscaler:
-                tensor = torch.from_numpy(image).permute(2, 0, 1).unsqueeze(0).to("cuda")
+                tensor = (
+                    torch.from_numpy(image).permute(2, 0, 1).unsqueeze(0).to("cuda")
+                )
                 with torch.no_grad():
                     upscaled = self.__upscaler(tensor)
-                target_size = (image.shape[0] * UPSCALE_FACTOR, image.shape[1] * UPSCALE_FACTOR)
-                upscaled = torch.nn.functional.interpolate(upscaled, size=target_size, mode="area")
+                target_size = (
+                    image.shape[0] * UPSCALE_FACTOR,
+                    image.shape[1] * UPSCALE_FACTOR,
+                )
+                upscaled = torch.nn.functional.interpolate(
+                    upscaled,
+                    size=target_size,
+                    mode="area",
+                )
                 image = upscaled.squeeze(0).permute(1, 2, 0).clamp(0, 1).cpu().numpy()
             if use_face_restore:
                 image = self.__restore_faces(image)
@@ -426,7 +452,10 @@ class WanTI2V:
         helper = self.__face_helper
         helper.clean_all()
         helper.read_image(bgr)
-        num_faces = helper.get_face_landmarks_5(only_center_face=False, eye_dist_threshold=5)
+        num_faces = helper.get_face_landmarks_5(
+            only_center_face=False,
+            eye_dist_threshold=5,
+        )
         if num_faces == 0:
             return image
 
@@ -436,8 +465,12 @@ class WanTI2V:
             tensor = torch.from_numpy(face).permute(2, 0, 1).unsqueeze(0).to("cuda")
             with torch.no_grad():
                 restored = self.__face_restorer(tensor)
-            restored_face = restored.squeeze(0).permute(1, 2, 0).clamp(0, 1).cpu().numpy()
-            helper.add_restored_face((restored_face[..., ::-1] * 255.0).round().astype(np.uint8))
+            restored_face = (
+                restored.squeeze(0).permute(1, 2, 0).clamp(0, 1).cpu().numpy()
+            )
+            helper.add_restored_face(
+                (restored_face[..., ::-1] * 255.0).round().astype(np.uint8),
+            )
 
         helper.get_inverse_affine(None)
         restored_bgr = helper.paste_faces_to_input_image()
@@ -457,7 +490,10 @@ class WanTI2V:
         aspect_ratio = image.height / image.width
         height = round((max_area * aspect_ratio) ** 0.5)
         width = round((max_area / aspect_ratio) ** 0.5)
-        mod_value = self.__pipe.vae_scale_factor_spatial * self.__pipe.transformer.config.patch_size[1]
+        mod_value = (
+            self.__pipe.vae_scale_factor_spatial
+            * self.__pipe.transformer.config.patch_size[1]
+        )
         height = max(mod_value, round(height / mod_value) * mod_value)
         width = max(mod_value, round(width / mod_value) * mod_value)
 
@@ -511,7 +547,9 @@ class WanTI2V:
         # output area.
         flow_shift = self.__flow_shift_override
         if flow_shift is None:
-            flow_shift = 5.0 if height * width >= FLOW_SHIFT_720P_AREA_THRESHOLD else 3.0
+            flow_shift = (
+                5.0 if height * width >= FLOW_SHIFT_720P_AREA_THRESHOLD else 3.0
+            )
         self.__pipe.scheduler = UniPCMultistepScheduler.from_config(
             self.__pipe.scheduler.config,
             flow_shift=flow_shift,
