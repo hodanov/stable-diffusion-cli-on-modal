@@ -160,12 +160,27 @@ class WanI2VSetup(WanI2VSetupInterface):
         return url
 
     def __download_file(self, url: str, cache_path: Path) -> None:
+        from urllib.error import HTTPError
         from urllib.request import Request, urlopen
 
         normalized_url = self.__normalize_hf_url(url)
         filename = self.__filename_from_url(normalized_url)
-        req = Request(normalized_url, headers={"User-Agent": "Mozilla/5.0"})
-        downloaded = urlopen(req).read()
+        headers = {"User-Agent": "Mozilla/5.0"}
+        if self.__token:
+            # Gated/private Hugging Face repos 401 without this; snapshot_download
+            # already sends it via its own token= param, but direct file URLs
+            # need it attached manually.
+            headers["Authorization"] = f"Bearer {self.__token}"
+        req = Request(normalized_url, headers=headers)
+        try:
+            downloaded = urlopen(req).read()
+        except HTTPError as e:
+            # The raw HTTPError holds an open response stream that Modal can't
+            # pickle across the container boundary, which masks the real
+            # status/reason behind a SerializationError. Re-raise as a plain
+            # exception so the actual cause reaches the caller.
+            msg = f"Failed to download {normalized_url}: HTTP {e.code} {e.reason}"
+            raise ValueError(msg) from e
         cache_path.mkdir(parents=True, exist_ok=True)
         with Path(cache_path / filename).open("wb") as f:
             f.write(downloaded)
