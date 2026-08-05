@@ -20,7 +20,7 @@ dependencies = [
   "spandrel>=0.4.2",
   "torch>=2.12.1",
   "torchvision",  # Direct dependency so tool.uv.sources pins it to the cu130 index.
-  "transformers>=5.12.1",
+  "transformers>=5.14.1",
 ]
 
 [tool.uv]
