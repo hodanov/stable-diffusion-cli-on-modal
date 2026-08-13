@@ -59,6 +59,8 @@ To use the script, execute the below.
 8. Execute `make img_by_sdxl_txt2img` command.
 9. Execute `make vid_by_wan_ti2v` command (TI2V video generation).
 
+`--image-path` accepts any image format Pillow can decode (PNG, AVIF, JPEG, WebP, ...), so an AVIF written to `outputs/` by `make img_by_sdxl_txt2img` can be fed straight back in.
+
 Images are generated and output to the `outputs/` directory.
 
 ## Directory structure

@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import io
 import secrets
 import time
 from datetime import date
 from pathlib import Path
+
+import PIL.Image
 
 
 class Seed:
@@ -211,6 +214,51 @@ class VideoPrompts:
     @property
     def image_path(self) -> str:
         return self.__image_path
+
+
+class InputImage:
+    """A source image for TI2V, normalized to PNG bytes."""
+
+    def __init__(self, png_bytes: bytes, source_format: str) -> None:
+        self.__png_bytes = png_bytes
+        self.__source_format = source_format
+
+    @classmethod
+    def from_path(cls, image_path: str) -> InputImage:
+        """
+        Load an image file and normalize it to PNG bytes.
+
+        Any format Pillow can decode is accepted (PNG, AVIF, JPEG, WebP, ...).
+        Normalizing here keeps the inference container independent of which
+        decoders its own Pillow build ships with, and rejects unreadable files
+        before a GPU container is started.
+        """
+        image_file = Path(image_path)
+        if not image_file.exists():
+            msg = f"image_path does not exist: {image_file}"
+            raise FileNotFoundError(msg)
+
+        try:
+            with PIL.Image.open(image_file) as image:
+                source_format = image.format or "unknown"
+                # The pipeline feeds the image as RGB anyway; converting here
+                # also forces the decode, so a broken file fails at this point.
+                rgb_image = image.convert("RGB")
+        except PIL.UnidentifiedImageError as e:
+            msg = f"image_path is not an image Pillow can decode: {image_file}"
+            raise ValueError(msg) from e
+
+        with io.BytesIO() as buf:
+            rgb_image.save(buf, format="PNG")
+            return cls(buf.getvalue(), source_format)
+
+    @property
+    def png_bytes(self) -> bytes:
+        return self.__png_bytes
+
+    @property
+    def source_format(self) -> str:
+        return self.__source_format
 
 
 class OutputDirectory:

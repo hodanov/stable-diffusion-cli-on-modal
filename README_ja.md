@@ -60,6 +60,8 @@ uv run modal token new
 8. `make img_by_sdxl_txt2img` を実行（スクリプトが起動）
 9. `make vid_by_wan_ti2v` を実行（TI2Vの動画生成）
 
+`--image-path` にはPillowがデコードできる画像形式であれば何でも指定できます（PNG / AVIF / JPEG / WebPなど）。`make img_by_sdxl_txt2img` が `outputs/` に出力したAVIFをそのまま入力にできます。
+
 ## ディレクトリ構成
 
 ```txt
