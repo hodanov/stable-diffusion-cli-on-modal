@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import logging
 import time
-from pathlib import Path
 
 import modal
-from domain import OutputDirectory, Seed, VideoOutputManager, VideoPrompts
+from domain import InputImage, OutputDirectory, Seed, VideoOutputManager, VideoPrompts
 from infrastructure import new_ti2v
 
 
@@ -34,10 +33,10 @@ def main(
     )
     logger = logging.getLogger("run-wan-ti2v-cli")
 
-    image_file = Path(image_path)
-    if not image_file.exists():
-        msg = f"image_path does not exist: {image_file}"
-        raise FileNotFoundError(msg)
+    # Decode before anything starts a GPU container, so an unusable image fails
+    # here instead of after the container has spun up.
+    input_image = InputImage.from_path(image_path)
+    logger.info("Loaded input image: %s (%s)", image_path, input_image.source_format)
 
     output_directory = OutputDirectory()
     directory_path = output_directory.make_directory()
@@ -74,13 +73,10 @@ def main(
         use_face_restore=use_face_restore == "True",
     )
 
-    with image_file.open("rb") as f:
-        image_bytes = f.read()
-
     for sample_index in range(samples):
         start_time = time.time()
         new_seed = Seed(seed)
-        video = ti2v.run_inference(new_seed, image_bytes)
+        video = ti2v.run_inference(new_seed, input_image.png_bytes)
         saved_path = output_manager.save_video(video, new_seed.value, sample_index)
         logger.info("Saved video to the: %s", saved_path)
         total_time = time.time() - start_time
