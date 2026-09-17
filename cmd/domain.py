@@ -11,6 +11,16 @@ from pathlib import Path
 import PIL.Image
 
 
+def parse_bool_flag(value: str) -> bool:
+    """Parse a boolean CLI flag. Modal passes flags as strings; only "True" enables one."""
+    return value == "True"
+
+
+def unset_if_negative(value: float) -> float | None:
+    """Map a negative CLI value to None, the convention for "unset"."""
+    return None if value < 0 else value
+
+
 class Seed:
     def __init__(self, seed: int) -> None:
         if seed != -1:
