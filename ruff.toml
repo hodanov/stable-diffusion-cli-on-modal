@@ -1,0 +1,8 @@
+lint.select = ["ALL"]
+lint.ignore = ["D", "E501", "ERA001", "INP001", "PLR0913", "COM812"]
+
+[lint.per-file-ignores]
+"tests/**" = ["S101", "PLR2004"]
+# The Modal apps import heavy container-only deps (torch, diffusers, yaml, ...)
+# inside functions so the modules still load in the local CLI environment.
+"app/**" = ["PLC0415"]
