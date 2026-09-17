@@ -1,4 +1,7 @@
-.PHONY: app
+.PHONY: app test
+
+test:
+	uv run pytest
 
 app: app_img app_vid
 
