@@ -6,3 +6,5 @@ __pycache__/
 config.yml
 memo.md
 outputs/
+.coverage
+.pytest_cache/
