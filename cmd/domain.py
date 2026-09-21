@@ -5,7 +5,7 @@ from __future__ import annotations
 import io
 import secrets
 import time
-from datetime import date
+from datetime import UTC, datetime
 from pathlib import Path
 
 import PIL.Image
@@ -103,6 +103,7 @@ class Prompts:
 class VideoPrompts:
     def __init__(
         self,
+        *,
         prompt: str,
         n_prompt: str,
         height: int,
@@ -274,7 +275,7 @@ class InputImage:
 class OutputDirectory:
     def __init__(self) -> None:
         self.__output_directory_name = "outputs"
-        self.__date_today = date.today().strftime("%Y-%m-%d")
+        self.__date_today = datetime.now(tz=UTC).astimezone().strftime("%Y-%m-%d")
         self.__make_path()
 
     def __make_path(self) -> None:
