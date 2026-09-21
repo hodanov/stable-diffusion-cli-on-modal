@@ -4,7 +4,13 @@ import logging
 import time
 
 import modal
-from domain import OutputDirectory, Prompts, Seed, StableDiffusionOutputManger
+from domain import (
+    OutputDirectory,
+    Prompts,
+    Seed,
+    StableDiffusionOutputManger,
+    parse_bool_flag,
+)
 from infrastructure import new_txt2img
 
 
@@ -43,7 +49,7 @@ def main(
         version,
         prompts,
         output_format,
-        use_upscaler=use_upscaler == "True",
+        use_upscaler=parse_bool_flag(use_upscaler),
     )
 
     for sample_index in range(samples):

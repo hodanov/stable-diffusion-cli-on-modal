@@ -4,7 +4,15 @@ import logging
 import time
 
 import modal
-from domain import InputImage, OutputDirectory, Seed, VideoOutputManager, VideoPrompts
+from domain import (
+    InputImage,
+    OutputDirectory,
+    Seed,
+    VideoOutputManager,
+    VideoPrompts,
+    parse_bool_flag,
+    unset_if_negative,
+)
 from infrastructure import new_ti2v
 
 
@@ -43,7 +51,10 @@ def main(
     logger.info("Made a directory: %s", directory_path)
 
     # -1 means "unset"; the low-noise expert then reuses guidance_scale.
-    resolved_guidance_scale_2 = None if guidance_scale_2 < 0 else guidance_scale_2
+    resolved_guidance_scale_2 = unset_if_negative(guidance_scale_2)
+    resolved_use_image_aspect = parse_bool_flag(use_image_aspect)
+    resolved_use_upscaler = parse_bool_flag(use_upscaler)
+    resolved_use_face_restore = parse_bool_flag(use_face_restore)
     prompts = VideoPrompts(
         prompt=prompt,
         n_prompt=n_prompt,
@@ -55,9 +66,9 @@ def main(
         fps=fps,
         guidance_scale=guidance_scale,
         guidance_scale_2=resolved_guidance_scale_2,
-        use_image_aspect=use_image_aspect == "True",
-        use_upscaler=use_upscaler == "True",
-        use_face_restore=use_face_restore == "True",
+        use_image_aspect=resolved_use_image_aspect,
+        use_upscaler=resolved_use_upscaler,
+        use_face_restore=resolved_use_face_restore,
         image_path=image_path,
     )
     output_manager = VideoOutputManager(prompts, directory_path)
@@ -68,9 +79,9 @@ def main(
         fps=fps,
         guidance_scale=guidance_scale,
         guidance_scale_2=resolved_guidance_scale_2,
-        use_image_aspect=use_image_aspect == "True",
-        use_upscaler=use_upscaler == "True",
-        use_face_restore=use_face_restore == "True",
+        use_image_aspect=resolved_use_image_aspect,
+        use_upscaler=resolved_use_upscaler,
+        use_face_restore=resolved_use_face_restore,
     )
 
     for sample_index in range(samples):
