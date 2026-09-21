@@ -42,7 +42,14 @@ def main(
     directory_path = output_directory.make_directory()
     logger.info("Made a directory: %s", directory_path)
 
-    prompts = Prompts(prompt, n_prompt, height, width, samples, steps)
+    prompts = Prompts(
+        prompt=prompt,
+        n_prompt=n_prompt,
+        height=height,
+        width=width,
+        samples=samples,
+        steps=steps,
+    )
     sd_output_manager = StableDiffusionOutputManger(prompts, directory_path)
 
     txt2img = new_txt2img(

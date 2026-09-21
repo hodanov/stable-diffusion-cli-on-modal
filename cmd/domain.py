@@ -41,6 +41,7 @@ class Seed:
 class Prompts:
     def __init__(
         self,
+        *,
         prompt: str,
         n_prompt: str,
         height: int,
