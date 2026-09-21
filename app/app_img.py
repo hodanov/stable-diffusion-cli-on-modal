@@ -273,7 +273,7 @@ class SDXLTxt2Img:
         max_embeddings_multiples = self.__count_token(p=prompt, n=n_prompt)
         generator = torch.Generator("cuda").manual_seed(seed)
         self.__pipe.to("cuda")
-        self.__pipe.enable_vae_tiling()
+        self.__pipe.vae.enable_tiling()
         generated_image = self.__pipe(
             prompt=prompt,
             negative_prompt=n_prompt,
@@ -289,7 +289,7 @@ class SDXLTxt2Img:
 
         if use_upscaler:
             self.__refiner.to("cuda")
-            self.__refiner.enable_vae_tiling()
+            self.__refiner.vae.enable_tiling()
             base_image = self.__double_image_size(generated_image)
             image = self.__refiner(
                 prompt=prompt,
