@@ -23,6 +23,13 @@ BASE_CACHE_PATH_UPSCALER = f"{MODEL_VOLUME_PATH}/upscaler"
 HF_CACHE_DIR = "/tmp/hf_cache"  # noqa: S108
 
 
+def double_image_size(image: PIL.Image.Image) -> PIL.Image.Image:
+    """Return the image as RGB at twice its size, the refiner's input."""
+    image = image.convert("RGB")
+    width, height = image.size
+    return image.resize((width * 2, height * 2), resample=PIL.Image.LANCZOS)
+
+
 def ensure_http_url(url: str) -> None:
     """Reject non-HTTP(S) URLs so urlopen never reads file: or custom schemes."""
     if urlparse(url).scheme not in ("http", "https"):
@@ -290,7 +297,7 @@ class SDXLTxt2Img:
         if use_upscaler:
             self.__refiner.to("cuda")
             self.__refiner.vae.enable_tiling()
-            base_image = self.__double_image_size(generated_image)
+            base_image = double_image_size(generated_image)
             image = self.__refiner(
                 prompt=prompt,
                 negative_prompt=n_prompt,
@@ -310,8 +317,3 @@ class SDXLTxt2Img:
                 image_output.append(buf.getvalue())
 
         return image_output
-
-    def __double_image_size(self, image: PIL.Image.Image) -> PIL.Image.Image:
-        image = image.convert("RGB")
-        width, height = image.size
-        return image.resize((width * 2, height * 2), resample=PIL.Image.LANCZOS)
