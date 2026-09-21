@@ -47,6 +47,13 @@ app.image = base_stub.dockerfile_commands(
 )
 
 
+def ensure_http_url(url: str) -> None:
+    """Reject non-HTTP(S) URLs so urlopen never reads file: or custom schemes."""
+    if urlparse(url).scheme not in ("http", "https"):
+        msg = f"Only http(s) URLs are supported: {url}"
+        raise ValueError(msg)
+
+
 def dequantize_comfy_scaled_fp8(state_dict: dict) -> dict:
     """
     Dequantizes ComfyUI-style scaled-fp8 tensors in place.
@@ -173,9 +180,11 @@ class WanI2VSetup(WanI2VSetupInterface):
             # already sends it via its own token= param, but direct file URLs
             # need it attached manually.
             headers["Authorization"] = f"Bearer {self.__token}"
-        req = Request(normalized_url, headers=headers)
+        ensure_http_url(normalized_url)
+        # The scheme is restricted to http(s) above.
+        req = Request(normalized_url, headers=headers)  # noqa: S310
         try:
-            downloaded = urlopen(req).read()
+            downloaded = urlopen(req).read()  # noqa: S310
         except HTTPError as e:
             # The raw HTTPError holds an open response stream that Modal can't
             # pickle across the container boundary, which masks the real
@@ -203,7 +212,7 @@ def prepare_wan_i2v() -> None:
     os.environ.setdefault("HF_HUB_DOWNLOAD_TIMEOUT", "60")
     os.environ.setdefault("HF_HUB_ETAG_TIMEOUT", "30")
     token: str = os.environ.get("HUGGING_FACE_TOKEN", "")
-    with open("/config.yml") as file:
+    with Path("/config.yml").open() as file:
         config: dict = yaml.safe_load(file)
 
     model_volume.reload()
@@ -370,8 +379,10 @@ class WanTI2V:
         from urllib.request import Request, urlopen
 
         filename = self.__filename_from_url(url)
-        req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        downloaded = urlopen(req).read()
+        ensure_http_url(url)
+        # The scheme is restricted to http(s) above.
+        req = Request(url, headers={"User-Agent": "Mozilla/5.0"})  # noqa: S310
+        downloaded = urlopen(req).read()  # noqa: S310
         cache_path.mkdir(parents=True, exist_ok=True)
         with Path(cache_path / filename).open("wb") as f:
             f.write(downloaded)
@@ -481,6 +492,7 @@ class WanTI2V:
         image: PIL.Image.Image,
         height: int,
         width: int,
+        *,
         use_image_aspect: bool,
     ) -> tuple[int, int]:
         if not use_image_aspect:

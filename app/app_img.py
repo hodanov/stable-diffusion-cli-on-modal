@@ -4,6 +4,7 @@ import io
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
+from urllib.parse import urlparse
 
 import diffusers
 import PIL.Image
@@ -20,6 +21,14 @@ BASE_CACHE_PATH_UPSCALER = f"{MODEL_VOLUME_PATH}/upscaler"
 # Keep the HF download cache out of the volume so only save_pretrained
 # outputs are persisted. The path is container-local and single-tenant.
 HF_CACHE_DIR = "/tmp/hf_cache"  # noqa: S108
+
+
+def ensure_http_url(url: str) -> None:
+    """Reject non-HTTP(S) URLs so urlopen never reads file: or custom schemes."""
+    if urlparse(url).scheme not in ("http", "https"):
+        msg = f"Only http(s) URLs are supported: {url}"
+        raise ValueError(msg)
+
 
 model_volume = Volume.from_name(MODEL_VOLUME_NAME, create_if_missing=True)
 app = App(
@@ -128,11 +137,13 @@ class CommonSetup:
         """
         from urllib.request import Request, urlopen
 
-        req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        downloaded = urlopen(req).read()
-        dir_names = Path(file_path) / file_name
-        os.makedirs(os.path.dirname(dir_names), exist_ok=True)
-        with open(dir_names, mode="wb") as f:
+        ensure_http_url(url)
+        # The scheme is restricted to http(s) above.
+        req = Request(url, headers={"User-Agent": "Mozilla/5.0"})  # noqa: S310
+        downloaded = urlopen(req).read()  # noqa: S310
+        dest = Path(file_path) / file_name
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        with dest.open(mode="wb") as f:
             f.write(downloaded)
 
 
@@ -151,7 +162,7 @@ def prepare_sdxl() -> None:
     import yaml
 
     token: str = os.environ.get("HUGGING_FACE_TOKEN", "")
-    with open("/config.yml") as file:
+    with Path("/config.yml").open() as file:
         config: dict = yaml.safe_load(file)
 
     model_volume.reload()
@@ -234,7 +245,7 @@ class SDXLTxt2Img:
         if token_size > max_length:
             max_embeddings_multiples = token_size // max_length + 1
 
-        print(
+        print(  # noqa: T201
             f"token_size: {token_size}, max_embeddings_multiples: {max_embeddings_multiples}",
         )
 
