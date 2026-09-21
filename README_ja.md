@@ -46,6 +46,14 @@ uv run modal token new
 
 `make`の各ターゲットは`uv run`経由で実行されるため、venvを手動でアクティベートする必要はありません。詳細は[Modalのドキュメント](https://modal.com/docs/guide)を参照してください。
 
+## テストの実行
+
+```bash
+make test        # または: uv run pytest
+```
+
+テストはローカル環境（GPUとtorchなし）で動作し、CLI側とModalアプリの設定・ダウンロード処理を対象にしています。推論自体は対象外です。CIでも同じテストをカバレッジ付きで実行します。
+
 ## クイックスタート
 
 下記の手順で画像が生成され、outputs ディレクトリに出力されます。
@@ -74,6 +82,9 @@ uv run modal token new
 ...
 │   └── txt2img_handler.py         # A script to run txt2img inference.
 │   └── ti2v_handler.py            # A script to run TI2V inference.
+├── tests/                    # ユニットテスト（`make test`）
+│   ├── cli/                    # cmd/ のテスト
+│   └── app/                    # app/ のテスト（GPU不要）
 └── app/                # コンフィグとModalアプリ
     ├── app_img.py              # Modalアプリ本体（SDXL）
     ├── app_vid.py              # Modalアプリ本体（Wan I2V）

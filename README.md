@@ -45,6 +45,14 @@ uv run modal token new
 
 All `make` targets run through `uv run`, so you don't need to activate the venv manually. Please see [the documentation of Modal](https://modal.com/docs/guide) for modals and tokens.
 
+## Running tests
+
+```bash
+make test        # or: uv run pytest
+```
+
+The tests run in the local environment (no GPU and no torch) and cover the CLI side plus the config/download logic of the Modal apps. Inference itself is not covered. CI runs the same suite with coverage.
+
 ## Getting Started
 
 To use the script, execute the below.
@@ -75,6 +83,9 @@ Images are generated and output to the `outputs/` directory.
 ...
 │   └── txt2img_handler.py         # A script to run txt2img inference.
 │   └── ti2v_handler.py            # A script to run TI2V inference.
+├── tests/                    # Unit tests (`make test`).
+│   ├── cli/                    # Tests for cmd/.
+│   └── app/                    # Tests for app/ (no GPU needed).
 └── app/                # A directory with config and Modal app.
     ├── app_img.py              # Modal app and inference implementation (SDXL)
     ├── app_vid.py              # Modal app and inference implementation (Wan I2V)
