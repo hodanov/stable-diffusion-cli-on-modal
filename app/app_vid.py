@@ -54,6 +54,60 @@ def ensure_http_url(url: str) -> None:
         raise ValueError(msg)
 
 
+def normalize_hf_url(url: str) -> str:
+    """Rewrite a Hugging Face blob URL to its raw-file (resolve) form."""
+    if "huggingface.co" in url and "/blob/" in url:
+        return url.replace("/blob/", "/resolve/")
+    return url
+
+
+def filename_from_url(url: str) -> str:
+    """Return the file name a URL points at, ignoring query and fragment."""
+    parsed = urlparse(url)
+    return Path(parsed.path).name
+
+
+def resolve_flow_shift(height: int, width: int, override: float | None) -> float:
+    """
+    Pick the scheduler flow_shift for an output size.
+
+    The repo scheduler config ships the 480P value; Wan recommends 5.0 once the
+    output area reaches 720P. A config override always wins.
+    """
+    if override is not None:
+        return override
+    return 5.0 if height * width >= FLOW_SHIFT_720P_AREA_THRESHOLD else 3.0
+
+
+def target_size_for_image(
+    image_size: tuple[int, int],
+    height: int,
+    width: int,
+    *,
+    use_image_aspect: bool,
+    mod_value: int,
+) -> tuple[int, int]:
+    """
+    Fit the requested output size to the input image's aspect ratio.
+
+    Both sides are rounded to a multiple of mod_value (the pipeline's VAE
+    scale factor times the transformer patch size), which the pipeline
+    requires, and the area never exceeds the requested one.
+    """
+    if not use_image_aspect:
+        return height, width
+
+    image_width, image_height = image_size
+    max_area = min(1280 * 704, height * width)
+    aspect_ratio = image_height / image_width
+    height = round((max_area * aspect_ratio) ** 0.5)
+    width = round((max_area / aspect_ratio) ** 0.5)
+    height = max(mod_value, round(height / mod_value) * mod_value)
+    width = max(mod_value, round(width / mod_value) * mod_value)
+
+    return int(height), int(width)
+
+
 def dequantize_comfy_scaled_fp8(state_dict: dict) -> dict:
     """
     Dequantizes ComfyUI-style scaled-fp8 tensors in place.
@@ -163,17 +217,12 @@ class WanI2VSetup(WanI2VSetupInterface):
         )
         model_volume.commit()
 
-    def __normalize_hf_url(self, url: str) -> str:
-        if "huggingface.co" in url and "/blob/" in url:
-            return url.replace("/blob/", "/resolve/")
-        return url
-
     def __download_file(self, url: str, cache_path: Path) -> None:
         from urllib.error import HTTPError
         from urllib.request import Request, urlopen
 
-        normalized_url = self.__normalize_hf_url(url)
-        filename = self.__filename_from_url(normalized_url)
+        normalized_url = normalize_hf_url(url)
+        filename = filename_from_url(normalized_url)
         headers = {"User-Agent": "Mozilla/5.0"}
         if self.__token:
             # Gated/private Hugging Face repos 401 without this; snapshot_download
@@ -195,10 +244,6 @@ class WanI2VSetup(WanI2VSetupInterface):
         cache_path.mkdir(parents=True, exist_ok=True)
         with Path(cache_path / filename).open("wb") as f:
             f.write(downloaded)
-
-    def __filename_from_url(self, url: str) -> str:
-        parsed = urlparse(url)
-        return Path(parsed.path).name
 
 
 @app.function(
@@ -330,8 +375,8 @@ class WanTI2V:
         transformer_path = (
             self.__cache_path
             / subfolder
-            / self.__filename_from_url(
-                self.__normalize_hf_url(url),
+            / filename_from_url(
+                normalize_hf_url(url),
             )
         )
         if not transformer_path.exists():
@@ -356,20 +401,9 @@ class WanTI2V:
                 param.data = param.data.float()
         return transformer
 
-    def __normalize_hf_url(self, url: str) -> str:
-        if "huggingface.co" in url and "/blob/" in url:
-            return url.replace("/blob/", "/resolve/")
-        return url
-
-    def __filename_from_url(self, url: str) -> str:
-        parsed = urlparse(url)
-        return Path(parsed.path).name
-
     def __ensure_lora_file(self, url: str) -> Path:
-        normalized_url = self.__normalize_hf_url(url)
-        lora_path = (
-            self.__cache_path / "loras" / self.__filename_from_url(normalized_url)
-        )
+        normalized_url = normalize_hf_url(url)
+        lora_path = self.__cache_path / "loras" / filename_from_url(normalized_url)
         if not lora_path.exists():
             self.__download_file(normalized_url, lora_path.parent)
             model_volume.commit()
@@ -378,7 +412,7 @@ class WanTI2V:
     def __download_file(self, url: str, cache_path: Path) -> None:
         from urllib.request import Request, urlopen
 
-        filename = self.__filename_from_url(url)
+        filename = filename_from_url(url)
         ensure_http_url(url)
         # The scheme is restricted to http(s) above.
         req = Request(url, headers={"User-Agent": "Mozilla/5.0"})  # noqa: S310
@@ -396,12 +430,12 @@ class WanTI2V:
 
         weights_path = Path(MODEL_VOLUME_PATH) / POSTPROCESS_DIR_NAME
         for url in (REALESRGAN_WEIGHT_URL, GFPGAN_WEIGHT_URL):
-            if not (weights_path / self.__filename_from_url(url)).exists():
+            if not (weights_path / filename_from_url(url)).exists():
                 self.__download_file(url, weights_path)
 
         loader = ModelLoader()
-        realesrgan_path = weights_path / self.__filename_from_url(REALESRGAN_WEIGHT_URL)
-        gfpgan_path = weights_path / self.__filename_from_url(GFPGAN_WEIGHT_URL)
+        realesrgan_path = weights_path / filename_from_url(REALESRGAN_WEIGHT_URL)
+        gfpgan_path = weights_path / filename_from_url(GFPGAN_WEIGHT_URL)
         self.__upscaler = loader.load_from_file(str(realesrgan_path)).to("cuda").eval()
         self.__face_restorer = loader.load_from_file(str(gfpgan_path)).to("cuda").eval()
         # FaceRestoreHelper downloads its detection/parsing weights into
@@ -487,30 +521,6 @@ class WanTI2V:
         restored_bgr = helper.paste_faces_to_input_image()
         return restored_bgr[..., ::-1].astype(np.float32) / 255.0
 
-    def __target_size_for_image(
-        self,
-        image: PIL.Image.Image,
-        height: int,
-        width: int,
-        *,
-        use_image_aspect: bool,
-    ) -> tuple[int, int]:
-        if not use_image_aspect:
-            return height, width
-
-        max_area = min(1280 * 704, height * width)
-        aspect_ratio = image.height / image.width
-        height = round((max_area * aspect_ratio) ** 0.5)
-        width = round((max_area / aspect_ratio) ** 0.5)
-        mod_value = (
-            self.__pipe.vae_scale_factor_spatial
-            * self.__pipe.transformer.config.patch_size[1]
-        )
-        height = max(mod_value, round(height / mod_value) * mod_value)
-        width = max(mod_value, round(width / mod_value) * mod_value)
-
-        return int(height), int(width)
-
     @method()
     def run_inference(
         self,
@@ -545,23 +555,21 @@ class WanTI2V:
 
         with io.BytesIO(image_bytes) as buf:
             image = PIL.Image.open(buf).convert("RGB")
-        height, width = self.__target_size_for_image(
-            image=image,
+        height, width = target_size_for_image(
+            image_size=image.size,
             height=height,
             width=width,
             use_image_aspect=use_image_aspect,
+            mod_value=(
+                self.__pipe.vae_scale_factor_spatial
+                * self.__pipe.transformer.config.patch_size[1]
+            ),
         )
         if image.size != (width, height):
             image = image.resize((width, height), resample=PIL.Image.LANCZOS)
 
-        # The repo scheduler config ships the 480P flow_shift (3.0); rebuild the
-        # scheduler with the configured override or the value matching the
-        # output area.
-        flow_shift = self.__flow_shift_override
-        if flow_shift is None:
-            flow_shift = (
-                5.0 if height * width >= FLOW_SHIFT_720P_AREA_THRESHOLD else 3.0
-            )
+        # Rebuild the scheduler with the flow_shift matching the output size.
+        flow_shift = resolve_flow_shift(height, width, self.__flow_shift_override)
         self.__pipe.scheduler = UniPCMultistepScheduler.from_config(
             self.__pipe.scheduler.config,
             flow_shift=flow_shift,
