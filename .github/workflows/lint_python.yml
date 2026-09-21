@@ -22,4 +22,4 @@ jobs:
         with:
           enable-cache: true
       - name: Run pytest
-        run: uv run --frozen pytest --cov=cmd --cov=app --cov-report=term-missing
+        run: uv run --frozen pytest --cov=cmd --cov=app --cov-report=term-missing --cov-fail-under=65
