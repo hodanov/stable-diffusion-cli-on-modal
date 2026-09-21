@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import io
 import time
-from datetime import date
+from datetime import UTC, datetime, tzinfo
 from typing import TYPE_CHECKING, Any
 
 import domain
@@ -245,18 +245,22 @@ class TestOutputDirectory:
     def test_makes_dated_directory_under_outputs(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        class FixedDate(date):
+        fixed_now = datetime(2026, 1, 2, 12, tzinfo=UTC)
+
+        class FixedDatetime(datetime):
             @classmethod
-            def today(cls) -> FixedDate:
-                return cls(2026, 1, 2)
+            def now(cls, tz: tzinfo | None = None) -> datetime:
+                return fixed_now.astimezone(tz)
 
         monkeypatch.chdir(tmp_path)
-        monkeypatch.setattr(domain, "date", FixedDate)
+        monkeypatch.setattr(domain, "datetime", FixedDatetime)
+        # The directory is named after the local date, which depends on the TZ.
+        expected = fixed_now.astimezone().strftime("%Y-%m-%d")
 
         path = OutputDirectory().make_directory()
 
-        assert str(path) == "outputs/2026-01-02"
-        assert (tmp_path / "outputs" / "2026-01-02").is_dir()
+        assert str(path) == f"outputs/{expected}"
+        assert (tmp_path / "outputs" / expected).is_dir()
 
     def test_existing_directory_is_reused(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
