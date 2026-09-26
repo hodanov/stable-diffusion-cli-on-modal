@@ -3,7 +3,7 @@ name = "stable-diffusion-modal-app"
 version = "0.1.0"
 requires-python = "==3.14.*"
 dependencies = [
-  "accelerate>=1.14.0",
+  "accelerate>=1.15.0",
   "controlnet-aux",
   "diffusers[torch]>=0.40.0",
   "facexlib>=0.3.0",
@@ -18,9 +18,9 @@ dependencies = [
   "pyyaml",  # To read the configuration file by written YAML.
   "safetensors>=0.8.0",  # To store tensors safely.
   "spandrel>=0.4.2",
-  "torch>=2.12.1",
+  "torch>=2.14.0",
   "torchvision",  # Direct dependency so tool.uv.sources pins it to the cu130 index.
-  "transformers>=5.15.1",
+  "transformers>=5.17.0",
 ]
 
 [tool.uv]
