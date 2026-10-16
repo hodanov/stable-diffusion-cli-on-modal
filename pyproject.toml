@@ -5,16 +5,16 @@ requires-python = ">=3.12"
 dependencies = [
     "diffusers>=0.40.0",
     "huggingface-hub>=1.32.0",
-    "modal>=1.5.5",
+    "modal>=1.6.0",
     "pillow>=12.3.0",
-    "python-dotenv>=1.2.3",
+    "python-dotenv>=1.2.4",
 ]
 
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
-    "ruff>=0.16.9",
+    "ruff>=0.16.10",
 ]
 
 [tool.pytest.ini_options]
