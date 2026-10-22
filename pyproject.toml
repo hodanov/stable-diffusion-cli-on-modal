@@ -6,7 +6,7 @@ dependencies = [
     "diffusers>=0.40.0",
     "huggingface-hub>=1.32.0",
     "modal>=1.5.5",
-    "pillow>=12.3.0",
+    "pillow>=13.0.0",
     "python-dotenv>=1.2.3",
 ]
 
