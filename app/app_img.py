@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import os
+import time
 from abc import ABC, abstractmethod
 from pathlib import Path
 from urllib.parse import urlparse
@@ -194,6 +195,10 @@ def prepare_sdxl() -> None:
 
 @app.cls(
     gpu="A10G",
+    # GPU containers can be preempted and restarted on a cold host, where loading
+    # the weights from the volume is slower, so allow more than the 300s default.
+    timeout=600,
+    startup_timeout=900,
     secrets=[Secret.from_dotenv(__file__)],
 )
 class SDXLTxt2Img:
@@ -207,6 +212,7 @@ class SDXLTxt2Img:
         import torch
         import yaml
 
+        start_time = time.perf_counter()
         config = {}
         with Path("/config.yml").open() as file:
             config = yaml.safe_load(file)
@@ -224,23 +230,24 @@ class SDXLTxt2Img:
             torch_dtype=torch.float16,
             use_safetensors=True,
         )
+        self.__pipe.to("cuda")
+        self.__pipe.vae.enable_tiling()
 
-        self.__refiner = diffusers.StableDiffusionXLImg2ImgPipeline.from_pretrained(
-            self.__cache_path,
+        # The refiner runs the same model as img2img, so share the loaded components
+        # instead of reading the weights from the volume a second time. torch_dtype
+        # is required: from_pipe casts to float32 by default, which would also cast
+        # the shared components of the base pipeline.
+        self.__refiner = diffusers.StableDiffusionXLImg2ImgPipeline.from_pipe(
+            self.__pipe,
             torch_dtype=torch.float16,
-            use_safetensors=True,
         )
+        print(f"Loaded the pipelines in {time.perf_counter() - start_time:.1f}s.")  # noqa: T201
 
     def __count_token(self, p: str, n: str) -> int:
         """
         Count the number of tokens in the prompt and negative prompt.
         """
-        from transformers import CLIPTokenizer
-
-        tokenizer = CLIPTokenizer.from_pretrained(
-            self.__cache_path,
-            subfolder="tokenizer",
-        )
+        tokenizer = self.__pipe.tokenizer
         token_size_p = len(tokenizer.tokenize(p))
         token_size_n = len(tokenizer.tokenize(n))
         token_size = token_size_p
@@ -279,8 +286,6 @@ class SDXLTxt2Img:
 
         max_embeddings_multiples = self.__count_token(p=prompt, n=n_prompt)
         generator = torch.Generator("cuda").manual_seed(seed)
-        self.__pipe.to("cuda")
-        self.__pipe.vae.enable_tiling()
         generated_image = self.__pipe(
             prompt=prompt,
             negative_prompt=n_prompt,
@@ -295,8 +300,6 @@ class SDXLTxt2Img:
         generated_images = [generated_image]
 
         if use_upscaler:
-            self.__refiner.to("cuda")
-            self.__refiner.vae.enable_tiling()
             base_image = double_image_size(generated_image)
             image = self.__refiner(
                 prompt=prompt,

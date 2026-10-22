@@ -59,26 +59,34 @@ def main(
         use_upscaler=parse_bool_flag(use_upscaler),
     )
 
-    for sample_index in range(samples):
-        start_time = time.time()
-        new_seed = Seed(seed)
-        images = txt2img.run_inference(new_seed)
-        for generated_image_index, image_bytes in enumerate(images):
-            saved_path = sd_output_manager.save_image(
-                image_bytes,
+    try:
+        for sample_index in range(samples):
+            start_time = time.time()
+            new_seed = Seed(seed)
+            logger.info(
+                "Sample %s/%s started (seed %s).",
+                sample_index + 1,
+                samples,
                 new_seed.value,
-                sample_index,
-                generated_image_index,
-                output_format,
             )
-            logger.info("Saved image to the: %s", saved_path)
-        total_time = time.time() - start_time
-        logger.info(
-            "Sample %s, took %ss (%ss / image).",
-            sample_index,
-            round(total_time, 3),
-            round(total_time / len(images), 3),
-        )
-
-    saved_prompts_path = sd_output_manager.save_prompts()
-    logger.info("Saved prompts: %s", saved_prompts_path)
+            images = txt2img.run_inference(new_seed)
+            for generated_image_index, image_bytes in enumerate(images):
+                saved_path = sd_output_manager.save_image(
+                    image_bytes,
+                    new_seed.value,
+                    sample_index,
+                    generated_image_index,
+                    output_format,
+                )
+                logger.info("Saved image to the: %s", saved_path)
+            total_time = time.time() - start_time
+            logger.info(
+                "Sample %s, took %ss (%ss / image).",
+                sample_index,
+                round(total_time, 3),
+                round(total_time / len(images), 3),
+            )
+    finally:
+        # Keep the prompts next to whatever images were saved, even if a sample failed.
+        saved_prompts_path = sd_output_manager.save_prompts()
+        logger.info("Saved prompts: %s", saved_prompts_path)

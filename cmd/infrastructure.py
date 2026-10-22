@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+import time
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
@@ -7,6 +9,48 @@ import modal
 
 if TYPE_CHECKING:
     from domain import Prompts, Seed, VideoPrompts
+
+# How often to report that a spawned call is still running, and when to give up.
+# A sample normally takes a few minutes including a cold start; the margin covers
+# a preempted container being restarted on another host.
+POLL_INTERVAL_SECONDS = 30
+MAX_WAIT_SECONDS = 15 * 60
+
+logger = logging.getLogger(__name__)
+
+
+def wait_for_result[T](
+    call: modal.FunctionCall[T],
+    *,
+    poll_interval: float = POLL_INTERVAL_SECONDS,
+    max_wait: float = MAX_WAIT_SECONDS,
+) -> T:
+    """
+    Wait for a spawned call, logging while it runs and cancelling it on give-up.
+
+    Modal restarts a preempted input on a new container without telling the
+    caller, and `modal run` does not stream the deployed app's logs, so a plain
+    `.remote()` would wait silently and without limit.
+    """
+    started = time.monotonic()
+    logger.info("Waiting for %s.", call.object_id)
+    try:
+        while True:
+            try:
+                return call.get(timeout=poll_interval)
+            except TimeoutError:
+                elapsed = time.monotonic() - started
+                if elapsed >= max_wait:
+                    call.cancel()
+                    msg = f"Gave up on {call.object_id} after {elapsed:.0f}s. Check it on the Modal dashboard."
+                    raise TimeoutError(msg) from None
+                logger.info(
+                    "Still waiting for %s (%.0fs elapsed).", call.object_id, elapsed
+                )
+    except KeyboardInterrupt:
+        # A spawned call keeps running on its GPU after the local CLI exits.
+        call.cancel()
+        raise
 
 
 class Txt2ImgInterface(ABC):
@@ -38,7 +82,7 @@ class SDXLTxt2Img(Txt2ImgInterface):
         )
 
     def run_inference(self, seed: Seed) -> list[bytes]:
-        return self.__sdxl_txt2_img().run_inference.remote(
+        call = self.__sdxl_txt2_img().run_inference.spawn(
             prompt=self.__prompts.prompt,
             n_prompt=self.__prompts.n_prompt,
             height=self.__prompts.height,
@@ -48,6 +92,7 @@ class SDXLTxt2Img(Txt2ImgInterface):
             use_upscaler=self.__use_upscaler,
             output_format=self.__output_format,
         )
+        return wait_for_result(call)
 
 
 class WanTI2V(Ti2VInterface):
