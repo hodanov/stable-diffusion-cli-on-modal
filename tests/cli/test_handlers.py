@@ -15,12 +15,16 @@ if TYPE_CHECKING:
 
 
 class FakeTxt2Img:
-    def __init__(self, images_per_call: int) -> None:
+    def __init__(self, images_per_call: int, fail_on_call: int | None = None) -> None:
         self.images_per_call = images_per_call
+        self.fail_on_call = fail_on_call
         self.seeds: list[int] = []
 
     def run_inference(self, seed: Seed) -> list[bytes]:
         self.seeds.append(seed.value)
+        if len(self.seeds) == self.fail_on_call:
+            msg = "gave up waiting"
+            raise TimeoutError(msg)
         return [f"image-{seed.value}-{i}".encode() for i in range(self.images_per_call)]
 
 
@@ -127,6 +131,30 @@ class TestTxt2ImgMain:
         )
 
         assert txt2img_factory["use_upscaler"] is False
+
+    def test_failed_sample_keeps_earlier_images_and_the_prompts(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        txt2img_factory: dict[str, Any],
+        raw_entrypoint: Callable[[Any], Callable[..., Any]],
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        txt2img_factory["client"] = FakeTxt2Img(images_per_call=2, fail_on_call=2)
+
+        with pytest.raises(TimeoutError, match="gave up waiting"):
+            raw_entrypoint(txt2img_handler.main)(
+                version="sdxl",
+                prompt="a cat",
+                n_prompt="",
+                samples=3,
+                seed=42,
+            )
+
+        assert txt2img_factory["client"].seeds == [42, 42]
+        output_directory = next((tmp_path / "outputs").iterdir())
+        assert len(list(output_directory.glob("*.png"))) == 2
+        assert len(list(output_directory.glob("prompts_*.txt"))) == 1
 
     def test_invalid_prompts_fail_before_inference(
         self,

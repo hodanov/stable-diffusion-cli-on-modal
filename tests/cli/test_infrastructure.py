@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 import infrastructure
@@ -12,22 +13,72 @@ from infrastructure import (
     WanTI2V,
     new_ti2v,
     new_txt2img,
+    wait_for_result,
 )
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
 
+class FakeClock:
+    """Stands in for the time module: only monotonic(), advanced by FakeFunctionCall."""
+
+    def __init__(self) -> None:
+        self.now = 0.0
+
+    def monotonic(self) -> float:
+        return self.now
+
+
+class FakeFunctionCall:
+    """Stands in for modal.FunctionCall: get() times out `pending_polls` times, then returns."""
+
+    object_id = "fc-test"
+
+    def __init__(
+        self,
+        result: object,
+        *,
+        pending_polls: int = 0,
+        clock: FakeClock | None = None,
+        error: BaseException | None = None,
+    ) -> None:
+        self.result = result
+        self.pending_polls = pending_polls
+        self.clock = clock or FakeClock()
+        self.error = error
+        self.timeouts: list[float | None] = []
+        self.cancelled = False
+
+    def get(self, timeout: float | None = None) -> object:
+        self.timeouts.append(timeout)
+        if self.error is not None:
+            raise self.error
+        if len(self.timeouts) <= self.pending_polls:
+            # The real get() blocks for `timeout` seconds before giving up.
+            self.clock.now += timeout or 0
+            raise TimeoutError
+        return self.result
+
+    def cancel(self) -> None:
+        self.cancelled = True
+
+
 class FakeMethod:
-    """Stands in for a Modal method: records the kwargs passed to .remote()."""
+    """Stands in for a Modal method: records the kwargs passed to .remote() and .spawn()."""
 
     def __init__(self, result: object) -> None:
         self.result = result
         self.calls: list[dict[str, Any]] = []
+        self.spawn_calls: list[dict[str, Any]] = []
 
     def remote(self, **kwargs: object) -> object:
         self.calls.append(kwargs)
         return self.result
+
+    def spawn(self, **kwargs: object) -> FakeFunctionCall:
+        self.spawn_calls.append(kwargs)
+        return FakeFunctionCall(self.result)
 
 
 class FakeCls:
@@ -119,7 +170,9 @@ class TestSDXLTxt2Img:
         images = txt2img.run_inference(Seed(42))
 
         assert images == [b"image"]
-        assert fake.run_inference.calls == [
+        # spawn() rather than remote(), so the wait can be logged and bounded.
+        assert fake.run_inference.calls == []
+        assert fake.run_inference.spawn_calls == [
             {
                 "prompt": "a cat",
                 "n_prompt": "blurry",
@@ -131,6 +184,59 @@ class TestSDXLTxt2Img:
                 "output_format": "avif",
             },
         ]
+
+
+@pytest.fixture
+def clock(monkeypatch: pytest.MonkeyPatch) -> FakeClock:
+    fake = FakeClock()
+    monkeypatch.setattr(infrastructure, "time", fake)
+    return fake
+
+
+class TestWaitForResult:
+    def test_keeps_polling_until_the_result_arrives(
+        self, clock: FakeClock, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        call = FakeFunctionCall([b"image"], pending_polls=2, clock=clock)
+
+        with caplog.at_level(logging.INFO):
+            result = wait_for_result(call, poll_interval=30, max_wait=900)
+
+        assert result == [b"image"]
+        assert call.timeouts == [30, 30, 30]
+        assert not call.cancelled
+        waiting = [
+            r.getMessage() for r in caplog.records if "Still waiting" in r.getMessage()
+        ]
+        assert len(waiting) == 2
+        assert "fc-test" in waiting[0]
+
+    def test_cancels_and_raises_after_max_wait(self, clock: FakeClock) -> None:
+        call = FakeFunctionCall([b"image"], pending_polls=100, clock=clock)
+
+        with pytest.raises(TimeoutError, match="fc-test"):
+            wait_for_result(call, poll_interval=30, max_wait=90)
+
+        assert call.cancelled
+        assert call.timeouts == [30, 30, 30]
+
+    def test_cancels_when_interrupted(self, clock: FakeClock) -> None:
+        call = FakeFunctionCall([b"image"], clock=clock, error=KeyboardInterrupt())
+
+        with pytest.raises(KeyboardInterrupt):
+            wait_for_result(call, poll_interval=30, max_wait=900)
+
+        assert call.cancelled
+
+    def test_remote_failure_is_raised_without_cancelling(
+        self, clock: FakeClock
+    ) -> None:
+        call = FakeFunctionCall([b"image"], clock=clock, error=RuntimeError("boom"))
+
+        with pytest.raises(RuntimeError, match="boom"):
+            wait_for_result(call, poll_interval=30, max_wait=900)
+
+        assert not call.cancelled
 
 
 class TestNewTi2V:
