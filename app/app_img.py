@@ -38,15 +38,15 @@ def ensure_http_url(url: str) -> None:
 
 
 model_volume = Volume.from_name(MODEL_VOLUME_NAME, create_if_missing=True)
+app_image = Image.from_dockerfile(
+    path="Dockerfile",
+).dockerfile_commands(
+    "COPY config.yml /",
+)
 app = App(
     "sdxl-cli",
+    image=app_image,
     volumes={MODEL_VOLUME_PATH: model_volume},
-)
-base_stub = Image.from_dockerfile(
-    path="Dockerfile",
-)
-app.image = base_stub.dockerfile_commands(
-    "COPY config.yml /",
 )
 
 
