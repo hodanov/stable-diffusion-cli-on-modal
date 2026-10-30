@@ -4,7 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
     "diffusers>=0.41.0",
-    "huggingface-hub>=1.32.0",
+    "huggingface-hub>=2.2.0",
     "modal>=1.6.1",
     "pillow>=13.0.0",
     "python-dotenv>=1.2.4",
@@ -14,7 +14,7 @@ dependencies = [
 dev = [
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
-    "ruff>=0.16.10",
+    "ruff>=0.17.1",
 ]
 
 [tool.pytest.ini_options]
