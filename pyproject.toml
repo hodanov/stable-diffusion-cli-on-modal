@@ -20,4 +20,4 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["cmd", "app"]
-addopts = "--import-mode=importlib -ra"
+addopts = "--import-mode=importlib -ra -p no:anyio"
