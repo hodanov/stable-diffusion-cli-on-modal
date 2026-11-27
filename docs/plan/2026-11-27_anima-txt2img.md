@@ -75,6 +75,8 @@
 - 実装時に分かったこと:
   - `modular_model_index.json` は全コンポーネントの参照先が Hub のリポ ID になっている。そのため `load_components(pretrained_model_name_or_path=<volume のパス>, dtype=torch.bfloat16)` で参照先を上書きして、Volume 上の変換済み重みを読むようにした。
   - 戻り値は `pipe(..., output="images")` で PIL のリストとして受け取る。
+  - 単一ファイルのキーの prefix はファイルごとに違う。`anima-turbo-v1.1` は ComfyUI 形式の `model.diffusion_model.` で、`net.` ではなかった（初回の `prep_anima` で strict load が失敗して判明）。`model.diffusion_model.` / `diffusion_model.` / `net.` / prefix なしを全部 `net.` に揃えてから分割する。
+  - 変換の途中で失敗するとモデルのディレクトリだけが Volume に残る。そこで、ディレクトリがあるかではなく完了マーカー（`.download_complete`）があるかで「ダウンロード済み」を判定する。
 
 ### 2. `app/config.sample.yml`
 

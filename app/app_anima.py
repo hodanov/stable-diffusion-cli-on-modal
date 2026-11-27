@@ -27,9 +27,17 @@ MAX_AREA = 1536 * 1536
 SIZE_MULTIPLE = 16
 UPSCALE_FACTOR = 2.0
 UPSCALE_STRENGTH = 0.3
-# ComfyUI single-file checkpoints keep the LLM adapter (diffusers'
-# AnimaTextConditioner) next to the Cosmos DiT under this prefix.
-LLM_ADAPTER_PREFIX = "net.llm_adapter."
+# Single-file checkpoints keep the LLM adapter (diffusers'
+# AnimaTextConditioner) next to the Cosmos DiT. The original Cosmos layout
+# prefixes every key with `net.`; ComfyUI repacks (e.g. anima-turbo-v1.1) use
+# the full-model prefix instead. Keys are normalized to `net.`, the prefix the
+# diffusers Cosmos converter strips.
+COSMOS_PREFIX = "net."
+CHECKPOINT_PREFIXES = ("model.diffusion_model.", "diffusion_model.", COSMOS_PREFIX)
+LLM_ADAPTER_PREFIX = "llm_adapter."
+# Written last by download_model(), so a run that failed half-way (e.g. in
+# the conversion) is retried instead of being skipped as already downloaded.
+DOWNLOAD_COMPLETE_MARKER = ".download_complete"
 
 model_volume = Volume.from_name(MODEL_VOLUME_NAME, create_if_missing=True)
 app_image = Image.from_dockerfile(
@@ -66,19 +74,24 @@ def filename_from_url(url: str) -> str:
 
 def split_anima_checkpoint(state_dict: dict) -> tuple[dict, dict]:
     """
-    Split a ComfyUI-style Anima checkpoint into transformer and text conditioner weights.
+    Split a single-file Anima checkpoint into transformer and text conditioner weights.
 
-    The transformer half keeps its original (`net.`-prefixed) keys for the
-    Cosmos converter; the text conditioner half has the adapter prefix removed,
-    which is already the AnimaTextConditioner layout.
+    The transformer half is keyed with the `net.` prefix the Cosmos converter
+    expects; the text conditioner half has every prefix removed, which is
+    already the AnimaTextConditioner layout.
     """
     transformer_state_dict = {}
     text_conditioner_state_dict = {}
     for key, value in state_dict.items():
-        if key.startswith(LLM_ADAPTER_PREFIX):
-            text_conditioner_state_dict[key.removeprefix(LLM_ADAPTER_PREFIX)] = value
+        bare_key = key
+        for prefix in CHECKPOINT_PREFIXES:
+            if key.startswith(prefix):
+                bare_key = key.removeprefix(prefix)
+                break
+        if bare_key.startswith(LLM_ADAPTER_PREFIX):
+            text_conditioner_state_dict[bare_key.removeprefix(LLM_ADAPTER_PREFIX)] = value
         else:
-            transformer_state_dict[key] = value
+            transformer_state_dict[COSMOS_PREFIX + bare_key] = value
     return transformer_state_dict, text_conditioner_state_dict
 
 
@@ -205,6 +218,10 @@ class AnimaSetup:
     def model_path(self) -> Path:
         return Path(MODEL_VOLUME_PATH) / self.__model_name
 
+    @property
+    def is_downloaded(self) -> bool:
+        return (self.model_path / DOWNLOAD_COMPLETE_MARKER).exists()
+
     def download_model(self) -> None:
         from huggingface_hub import snapshot_download
 
@@ -229,6 +246,8 @@ class AnimaSetup:
             )
             convert_single_file(checkpoint_path, self.model_path)
             checkpoint_path.unlink()
+        self.model_path.mkdir(parents=True, exist_ok=True)
+        (self.model_path / DOWNLOAD_COMPLETE_MARKER).touch()
 
     def download_loras(self) -> None:
         lora_dir = self.model_path / LORA_DIR_NAME
@@ -246,8 +265,8 @@ def prepare_anima() -> None:
     """
     Download the Anima model and LoRAs into the model volume.
 
-    The model download is skipped when the model already exists in the
-    volume. To force a re-download, remove it first with
+    The model download is skipped once it has completed. A run that failed
+    half-way is redone on the next call. To force a re-download, remove it with
     `modal volume rm -r anima-models /<model name>`.
     """
     import yaml
@@ -258,7 +277,7 @@ def prepare_anima() -> None:
 
     model_volume.reload()
     setup = AnimaSetup(config, token)
-    if setup.model_path.exists():
+    if setup.is_downloaded:
         print(f"The model already exists at '{setup.model_path}'. Skipping the download.")  # noqa: T201
     else:
         setup.download_model()

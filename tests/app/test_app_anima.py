@@ -20,17 +20,20 @@ TRANSFORMER_URL = "https://huggingface.co/org/repo/blob/main/split_files/diffusi
 
 
 class TestSplitAnimaCheckpoint:
-    def test_separates_the_llm_adapter_from_the_transformer(self) -> None:
+    # The original Cosmos layout uses `net.`; ComfyUI repacks such as
+    # anima-turbo-v1.1 use the full-model `model.diffusion_model.` prefix.
+    @pytest.mark.parametrize("prefix", ["net.", "model.diffusion_model.", "diffusion_model.", ""])
+    def test_separates_the_llm_adapter_from_the_transformer(self, prefix: str) -> None:
         state_dict = {
-            "net.x_embedder.proj.1.weight": 1,
-            "net.blocks.0.self_attn.q_proj.weight": 2,
-            "net.llm_adapter.embed.weight": 3,
-            "net.llm_adapter.blocks.0.cross_attn.k_proj.weight": 4,
+            f"{prefix}x_embedder.proj.1.weight": 1,
+            f"{prefix}blocks.0.self_attn.q_proj.weight": 2,
+            f"{prefix}llm_adapter.embed.weight": 3,
+            f"{prefix}llm_adapter.blocks.0.cross_attn.k_proj.weight": 4,
         }
 
         transformer, text_conditioner = split_anima_checkpoint(state_dict)
 
-        # The Cosmos converter strips `net.` itself, so the transformer keeps it.
+        # Normalized to `net.`, which the Cosmos converter strips itself.
         assert transformer == {
             "net.x_embedder.proj.1.weight": 1,
             "net.blocks.0.self_attn.q_proj.weight": 2,
@@ -151,6 +154,33 @@ class TestAnimaSetupDownloadModel:
         assert snapshot["ignore_patterns"] == ["*.md"]
         assert downloads.files == []
         assert downloads.conversions == []
+
+    @pytest.mark.usefixtures("downloads")
+    def test_is_downloaded_only_after_a_complete_download(self) -> None:
+        setup = AnimaSetup(make_config(), "")
+        # A directory left by a failed run must not count as downloaded.
+        setup.model_path.mkdir(parents=True)
+        assert not setup.is_downloaded
+
+        setup.download_model()
+
+        assert setup.is_downloaded
+
+    @pytest.mark.usefixtures("downloads")
+    def test_failed_conversion_leaves_the_model_not_downloaded(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        def failing_convert(_checkpoint_path: Path, _model_path: Path) -> None:
+            msg = "key mismatch"
+            raise RuntimeError(msg)
+
+        monkeypatch.setattr(app_anima, "convert_single_file", failing_convert)
+        setup = AnimaSetup(make_config(transformer_url=TRANSFORMER_URL), "")
+
+        with pytest.raises(RuntimeError, match="key mismatch"):
+            setup.download_model()
+
+        assert not setup.is_downloaded
 
     def test_repo_id_can_be_overridden_and_empty_token_is_none(
         self, downloads: Downloads
