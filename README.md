@@ -238,7 +238,7 @@ To force a re-download (e.g. the URL changed but the model name stayed the same)
 
 ### 8. Anima (anime / illustration)
 
-[Anima](https://huggingface.co/circlestone-labs/Anima) is a 2B text-to-image model for anime and illustrations. It is built on Cosmos-Predict2 with a Qwen3 text encoder and the Qwen-Image VAE, and runs through diffusers' `AnimaModularPipeline` in its own Modal app (`anima-cli`, volume `anima-models`, L4 GPU).
+[Anima](https://huggingface.co/circlestone-labs/Anima) is a 2B text-to-image model for anime and illustrations. It is built on Cosmos-Predict2 with a Qwen3 text encoder and the Qwen-Image VAE, and runs through diffusers' `AnimaModularPipeline` in its own Modal app (`anima-cli`, volume `anima-models`, L4 / A10G / L40S GPU).
 
 > **License:** Anima is released under the CircleStone Labs Non-Commercial License (plus the NVIDIA Open Model License). You may not use the model itself commercially, for example behind a paid API. You may use the generated images commercially.
 

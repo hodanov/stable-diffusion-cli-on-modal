@@ -239,7 +239,7 @@ uv run modal volume rm sdxl-models /<モデル名>
 
 ### 8. Anima（アニメ・イラスト）
 
-[Anima](https://huggingface.co/circlestone-labs/Anima) はアニメ・イラスト向けの 2B の txt2img モデルです。Cosmos-Predict2 に Qwen3 テキストエンコーダと Qwen-Image VAE を組み合わせた構成です。diffusers の `AnimaModularPipeline` を使い、専用の Modal アプリ（`anima-cli`、Volume `anima-models`、L4 GPU）で動きます。
+[Anima](https://huggingface.co/circlestone-labs/Anima) はアニメ・イラスト向けの 2B の txt2img モデルです。Cosmos-Predict2 に Qwen3 テキストエンコーダと Qwen-Image VAE を組み合わせた構成です。diffusers の `AnimaModularPipeline` を使い、専用の Modal アプリ（`anima-cli`、Volume `anima-models`、L4 / A10G / L40S のいずれかの GPU）で動きます。
 
 > **ライセンス:** Anima は CircleStone Labs Non-Commercial License（と NVIDIA Open Model License）で公開されています。有料 API での提供など、モデル自体の商用利用はできません。生成した画像は商用利用できます。
 

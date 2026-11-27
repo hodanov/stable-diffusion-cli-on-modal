@@ -286,7 +286,9 @@ def prepare_anima() -> None:
 
 
 @app.cls(
-    gpu="L4",
+    # 2B in bf16 fits any 24GB+ GPU. A single type can sit unscheduled for
+    # minutes when Modal is out of capacity, so fall back in this order.
+    gpu=["L4", "A10G", "L40S"],
     # Allow for a cold host after preemption, like the SDXL app.
     timeout=600,
     startup_timeout=900,
