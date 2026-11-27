@@ -8,8 +8,9 @@ This is a Diffusers-based script for running Stable Diffusion on [Modal](https:/
 
 1. Image generation using txt2img or img2img.
    ![example for txt2img](assets/20230902_tile_imgs.png)
-   Available version:
-   - SDXL (only)
+   Available versions:
+   - SDXL
+   - [Anima](https://huggingface.co/circlestone-labs/Anima) (anime / illustration, txt2img; see [Anima](#8-anima-anime--illustration))
 
 2. Upscaling
 
@@ -89,6 +90,7 @@ Images are generated and output to the `outputs/` directory.
 └── app/                # A directory with config and Modal app.
     ├── app_img.py              # Modal app and inference implementation (SDXL)
     ├── app_vid.py              # Modal app and inference implementation (Wan I2V)
+    ├── app_anima.py            # Modal app and inference implementation (Anima)
     ├── Dockerfile              # To build a base image.
     ├── config.yml              # To set a model, VAE and optional tools.
     ├── pyproject.toml          # Dependencies installed in the container image.
@@ -233,5 +235,35 @@ uv run modal volume rm sdxl-models /<model name>
 ```
 
 To force a re-download (e.g. the URL changed but the model name stayed the same), remove the model from the volume first and then execute `make prep_sdxl`.
+
+### 8. Anima (anime / illustration)
+
+[Anima](https://huggingface.co/circlestone-labs/Anima) is a 2B text-to-image model for anime and illustrations. It is built on Cosmos-Predict2 with a Qwen3 text encoder and the Qwen-Image VAE, and runs through diffusers' `AnimaModularPipeline` in its own Modal app (`anima-cli`, volume `anima-models`, L4 / A10G / L40S GPU).
+
+> **License:** Anima is released under the CircleStone Labs Non-Commercial License (plus the NVIDIA Open Model License). You may not use the model itself commercially, for example behind a paid API. You may use the generated images commercially.
+
+1. Configure the `anima` section of `./app/config.yml` (see `config.sample.yml`).
+2. Execute `make app_anima` to deploy the app.
+3. Execute `make prep_anima`. It downloads `circlestone-labs/Anima-Base-v1.0-Diffusers`. When `transformer_url` is set, it also converts that ComfyUI single-file checkpoint (Turbo or Aesthetic) into the transformer and text conditioner.
+4. Execute `make img_by_anima_txt2img`.
+
+Recommended settings, from the model card:
+
+| Variant (`transformer_url`)        | Steps | `guidance_scale` |
+| ---------------------------------- | ----- | ---------------- |
+| Turbo (`anima-turbo-v1.1`)         | 8-12  | 1.0              |
+| Aesthetic (`anima-aesthetic-v1.1`) | 30-50 | 4.0-5.0          |
+| Base (no `transformer_url`)        | 30-50 | 4.0-5.0          |
+
+- `--guidance-scale` overrides `anima.model.guidance_scale` for a single run.
+- At 1.0, the negative prompt is not used.
+- Sizes must be between 512x512 and 1536x1536 pixels. They are rounded to a multiple of 16.
+- `--use-upscaler "True"` re-renders the image with img2img at up to 2x, capped at 1536x1536 pixels.
+- Prompts take Danbooru-style tags (lowercase, spaces instead of underscores), natural language, or both.
+  - Prefix artists with `@`.
+  - A good start is `masterpiece, best quality, score_7, safe,` followed by your tags.
+  - Avoid `score_*` tags with the Aesthetic variant.
+- An empty `--n-prompt` uses the model card's recommended negative prompt.
+- Only diffusers' FlowMatch Euler scheduler is available. The model card's ComfyUI samplers (`er_sde`, `beta57`) are not.
 
 Thank you.

@@ -10,6 +10,7 @@ from domain import (
     Seed,
     StableDiffusionOutputManger,
     parse_bool_flag,
+    unset_if_negative,
 )
 from infrastructure import new_txt2img
 
@@ -24,6 +25,7 @@ def main(
     samples: int = 5,
     steps: int = 20,
     seed: int = -1,
+    guidance_scale: float = -1,
     use_upscaler: str = "False",
     output_format: str = "png",
 ) -> None:
@@ -57,6 +59,8 @@ def main(
         prompts,
         output_format,
         use_upscaler=parse_bool_flag(use_upscaler),
+        # Negative means "use the server default"; only Anima reads it.
+        guidance_scale=unset_if_negative(guidance_scale),
     )
 
     try:

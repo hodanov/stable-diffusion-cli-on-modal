@@ -47,8 +47,10 @@ def txt2img_factory(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
         output_format: str,
         *,
         use_upscaler: bool,
+        guidance_scale: float | None = None,
     ) -> FakeTxt2Img:
         recorded["version"] = version
+        recorded["guidance_scale"] = guidance_scale
         recorded["prompts"] = prompts
         recorded["output_format"] = output_format
         recorded["use_upscaler"] = use_upscaler
@@ -131,6 +133,28 @@ class TestTxt2ImgMain:
         )
 
         assert txt2img_factory["use_upscaler"] is False
+        # The default -1 leaves the guidance scale to the server's config.
+        assert txt2img_factory["guidance_scale"] is None
+
+    def test_positive_guidance_scale_is_passed_through(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        txt2img_factory: dict[str, Any],
+        raw_entrypoint: Callable[[Any], Callable[..., Any]],
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+
+        raw_entrypoint(txt2img_handler.main)(
+            version="anima",
+            prompt="1girl",
+            n_prompt="",
+            samples=1,
+            guidance_scale=4.5,
+        )
+
+        assert txt2img_factory["version"] == "anima"
+        assert txt2img_factory["guidance_scale"] == 4.5
 
     def test_failed_sample_keeps_earlier_images_and_the_prompts(
         self,

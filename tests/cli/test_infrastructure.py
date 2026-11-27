@@ -7,6 +7,7 @@ import infrastructure
 import pytest
 from domain import Prompts, Seed, VideoPrompts
 from infrastructure import (
+    AnimaTxt2Img,
     SDXLTxt2Img,
     Ti2VInterface,
     Txt2ImgInterface,
@@ -151,6 +152,16 @@ class TestNewTxt2Img:
         assert isinstance(txt2img, Txt2ImgInterface)
         assert fake.lookups == [("sdxl-cli", "SDXLTxt2Img")]
 
+    def test_anima_builds_client(
+        self, fake_from_name: Callable[[object], FakeCls]
+    ) -> None:
+        fake = fake_from_name([])
+
+        txt2img = new_txt2img("anima", make_prompts(), "png", use_upscaler=False)
+
+        assert isinstance(txt2img, AnimaTxt2Img)
+        assert fake.lookups == [("anima-cli", "AnimaTxt2Img")]
+
     def test_unknown_version_is_rejected(
         self, fake_from_name: Callable[[object], FakeCls]
     ) -> None:
@@ -180,6 +191,38 @@ class TestSDXLTxt2Img:
                 "width": 768,
                 "steps": 20,
                 "seed": 42,
+                "use_upscaler": True,
+                "output_format": "avif",
+            },
+        ]
+
+
+class TestAnimaTxt2Img:
+    def test_run_inference_forwards_arguments(
+        self, fake_from_name: Callable[[object], FakeCls]
+    ) -> None:
+        fake = fake_from_name([b"image", b"refined"])
+        txt2img = new_txt2img(
+            "anima",
+            make_prompts(),
+            "avif",
+            use_upscaler=True,
+            guidance_scale=4.5,
+        )
+
+        images = txt2img.run_inference(Seed(7))
+
+        assert images == [b"image", b"refined"]
+        assert fake.run_inference.calls == []
+        assert fake.run_inference.spawn_calls == [
+            {
+                "prompt": "a cat",
+                "n_prompt": "blurry",
+                "height": 512,
+                "width": 768,
+                "steps": 20,
+                "seed": 7,
+                "guidance_scale": 4.5,
                 "use_upscaler": True,
                 "output_format": "avif",
             },
