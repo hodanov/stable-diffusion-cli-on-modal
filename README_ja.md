@@ -7,7 +7,8 @@
 1. txt2imgまたはimt2imgによる画像生成ができます。
    ![txt2imgでの生成画像例](assets/20230902_tile_imgs.png)
    利用可能なバージョン:
-   - SDXL（のみ）
+   - SDXL
+   - [Anima](https://huggingface.co/circlestone-labs/Anima)（アニメ・イラスト向け、txt2img。[Anima](#8-animaアニメイラスト) を参照）
 
 2. アップスケーラーとControlNet Tileを利用した高解像度な画像を生成することができます。
 
@@ -88,6 +89,7 @@ make test        # または: uv run pytest
 └── app/                # コンフィグとModalアプリ
     ├── app_img.py              # Modalアプリ本体（SDXL）
     ├── app_vid.py              # Modalアプリ本体（Wan I2V）
+    ├── app_anima.py            # Modalアプリ本体（Anima）
     ├── Dockerfile              # ベースイメージビルド用
     ├── config.yml              # モデル/VAE等の設定
     ├── pyproject.toml          # コンテナイメージに入る依存の定義
@@ -234,3 +236,33 @@ uv run modal volume rm sdxl-models /<モデル名>
 ```
 
 モデル名が同じままURLだけ変わった場合など、強制的に再ダウンロードしたいときは、先にVolumeからモデルを削除してから `make prep_sdxl` を実行してください。
+
+### 8. Anima（アニメ・イラスト）
+
+[Anima](https://huggingface.co/circlestone-labs/Anima) はアニメ・イラスト向けの 2B の txt2img モデルです。Cosmos-Predict2 に Qwen3 テキストエンコーダと Qwen-Image VAE を組み合わせた構成です。diffusers の `AnimaModularPipeline` を使い、専用の Modal アプリ（`anima-cli`、Volume `anima-models`、L4 GPU）で動きます。
+
+> **ライセンス:** Anima は CircleStone Labs Non-Commercial License（と NVIDIA Open Model License）で公開されています。有料 API での提供など、モデル自体の商用利用はできません。生成した画像は商用利用できます。
+
+1. `./app/config.yml` の `anima` セクションを設定する（`config.sample.yml` を参照）
+2. `make app_anima` を実行（アプリをデプロイ）
+3. `make prep_anima` を実行（`circlestone-labs/Anima-Base-v1.0-Diffusers` をダウンロードします。`transformer_url` を指定した場合は、ComfyUI 用の単一ファイル（Turbo / Aesthetic）を transformer と text conditioner に変換します）
+4. `make img_by_anima_txt2img` を実行
+
+推奨設定（モデルカードより）:
+
+| バリアント（`transformer_url`） | Steps | `guidance_scale` |
+| --- | --- | --- |
+| Turbo（`anima-turbo-v1.1`） | 8〜12 | 1.0 |
+| Aesthetic（`anima-aesthetic-v1.1`） | 30〜50 | 4.0〜5.0 |
+| Base（`transformer_url` なし） | 30〜50 | 4.0〜5.0 |
+
+- `--guidance-scale` を指定すると、その実行だけ `anima.model.guidance_scale` を上書きします。
+- 1.0 のときはネガティブプロンプトを使いません。
+- サイズは 512x512〜1536x1536 ピクセルの範囲で指定します。16 の倍数に丸められます。
+- `--use-upscaler "True"` を指定すると、img2img で最大 2 倍に再描画します。上限は 1536x1536 ピクセルです。
+- プロンプトには Danbooru 形式のタグ（小文字、アンダースコアではなくスペース区切り）、自然文、またはその混在を使えます。
+  - アーティスト名には `@` を付けます。
+  - まずは `masterpiece, best quality, score_7, safe,` の後にタグを並べるのがおすすめです。
+  - Aesthetic では `score_*` タグを使わないでください。
+- `--n-prompt` を空にすると、モデルカードの推奨ネガティブプロンプトを使います。
+- スケジューラは diffusers の FlowMatch Euler のみです。モデルカードにある ComfyUI のサンプラー（`er_sde`、`beta57`）は使えません。

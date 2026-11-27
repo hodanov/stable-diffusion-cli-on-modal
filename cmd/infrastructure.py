@@ -95,6 +95,40 @@ class SDXLTxt2Img(Txt2ImgInterface):
         return wait_for_result(call)
 
 
+class AnimaTxt2Img(Txt2ImgInterface):
+    def __init__(
+        self,
+        prompts: Prompts,
+        output_format: str,
+        *,
+        use_upscaler: bool,
+        guidance_scale: float | None,
+    ) -> None:
+        self.__prompts = prompts
+        self.__output_format = output_format
+        self.__use_upscaler = use_upscaler
+        self.__guidance_scale = guidance_scale
+        self.__anima_txt2img = modal.Cls.from_name(
+            "anima-cli",
+            "AnimaTxt2Img",
+        )
+
+    def run_inference(self, seed: Seed) -> list[bytes]:
+        call = self.__anima_txt2img().run_inference.spawn(
+            prompt=self.__prompts.prompt,
+            n_prompt=self.__prompts.n_prompt,
+            height=self.__prompts.height,
+            width=self.__prompts.width,
+            steps=self.__prompts.steps,
+            seed=seed.value,
+            # None lets the server fall back to the guidance scale in config.yml.
+            guidance_scale=self.__guidance_scale,
+            use_upscaler=self.__use_upscaler,
+            output_format=self.__output_format,
+        )
+        return wait_for_result(call)
+
+
 class WanTI2V(Ti2VInterface):
     def __init__(
         self,
@@ -146,7 +180,9 @@ def new_txt2img(
     output_format: str,
     *,
     use_upscaler: bool,
+    guidance_scale: float | None = None,
 ) -> Txt2ImgInterface:
+    """Build the client for a model version. SDXL ignores guidance_scale."""
     match version:
         case "sdxl":
             return SDXLTxt2Img(
@@ -154,8 +190,15 @@ def new_txt2img(
                 use_upscaler=use_upscaler,
                 output_format=output_format,
             )
+        case "anima":
+            return AnimaTxt2Img(
+                prompts=prompts,
+                use_upscaler=use_upscaler,
+                output_format=output_format,
+                guidance_scale=guidance_scale,
+            )
         case _:
-            msg = f"Invalid version: {version}. Only 'sdxl' is supported now."
+            msg = f"Invalid version: {version}. Only 'sdxl' and 'anima' are supported."
             raise ValueError(msg)
 
 

@@ -62,3 +62,26 @@ wan_i2v:
     # Optional: fixed scheduler flow_shift. Distill LoRAs are trained at a
     # fixed shift (lightx2v: 5.0). Omit to pick 3.0/5.0 from the output area.
     # flow_shift: 5.0
+
+##########
+# Anima (anime/illustration text-to-image) settings, used by app_anima.py.
+# The model is licensed for non-commercial use only (generated images may be
+# used commercially). See https://huggingface.co/circlestone-labs/Anima
+anima:
+  model:
+    name: anima-turbo-v1.1
+    # repo_id provides the text encoder, VAE, tokenizers and configs.
+    # If omitted, circlestone-labs/Anima-Base-v1.0-Diffusers is used.
+    # repo_id: circlestone-labs/Anima-Base-v1.0-Diffusers
+    # Optional: a ComfyUI single-file checkpoint that replaces the transformer
+    # and LLM adapter of repo_id. Omit it to use Anima-Base as is.
+    #   Turbo:     .../anima-turbo-v1.1.safetensors     (8-12 steps, guidance 1.0)
+    #   Aesthetic: .../anima-aesthetic-v1.1.safetensors (30-50 steps, guidance 4-5)
+    transformer_url: https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-turbo-v1.1.safetensors
+    # CFG used when --guidance-scale is not given. Turbo is distilled for 1.0
+    # (which also skips the negative pass); use 4.0-5.0 for Base/Aesthetic.
+    guidance_scale: 1.0
+  # Optional: LoRAs trained for Anima, in a format diffusers can load.
+  # loras:
+  #   - url: https://huggingface.co/user/repo/resolve/main/your_lora.safetensors
+  #     scale: 1.0
